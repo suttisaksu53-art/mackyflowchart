@@ -1,0 +1,3989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Professional Flowchart Creator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Kanit:wght@300;400;600&family=Mitr:wght@300;400&family=Montserrat:wght@400;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Poppins:wght@300;400;600;700&family=Prompt:wght@300;400;600&family=Roboto:wght@300;400;700&family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-light: #dbeafe;
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --gray-900: #0f172a;
+  --white: #ffffff;
+  --danger: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+  --radius: 6px;
+  --radius-lg: 8px;
+  --font: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+  --menu-height: 30px;
+  --toolbar-height: 40px;
+  --statusbar-height: 26px;
+  --panel-width: 220px;
+  --props-width: 250px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--gray-800);
+  background: var(--gray-100);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ===== MENU BAR ===== */
+#menu-bar {
+  height: var(--menu-height);
+  background: var(--white);
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  z-index: 1000;
+  position: relative;
+}
+
+.menu-item {
+  padding: 4px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 13px;
+  position: relative;
+  color: var(--gray-700);
+}
+
+.menu-item:hover, .menu-item.active {
+  background: var(--gray-100);
+  color: var(--gray-900);
+}
+
+.menu-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  min-width: 220px;
+  z-index: 1001;
+  padding: 4px 0;
+}
+
+.menu-dropdown.show { display: block; }
+
+.menu-dropdown-item {
+  padding: 6px 12px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--gray-700);
+}
+
+.menu-dropdown-item:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.menu-dropdown-item .shortcut {
+  color: var(--gray-400);
+  font-size: 11px;
+  margin-left: 20px;
+}
+
+.menu-separator {
+  height: 1px;
+  background: var(--gray-200);
+  margin: 4px 0;
+}
+
+.menu-dropdown-item.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* ===== TOOLBAR ===== */
+#toolbar {
+  height: var(--toolbar-height);
+  background: var(--white);
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 2px;
+  z-index: 100;
+}
+
+.tool-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--gray-600);
+  font-size: 16px;
+  position: relative;
+}
+
+.tool-btn:hover { background: var(--gray-100); color: var(--gray-800); }
+.tool-btn.active { background: var(--primary-light); color: var(--primary); }
+.tool-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.tool-sep {
+  width: 1px;
+  height: 24px;
+  background: var(--gray-200);
+  margin: 0 4px;
+}
+
+.tool-btn[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--gray-800);
+  color: var(--white);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  z-index: 999;
+  pointer-events: none;
+}
+
+/* ===== MAIN LAYOUT ===== */
+#main-container {
+  display: flex;
+  height: calc(100vh - var(--menu-height) - var(--toolbar-height) - var(--statusbar-height));
+}
+
+/* ===== SHAPE PANEL ===== */
+#shape-panel {
+  width: var(--panel-width);
+  min-width: var(--panel-width);
+  background: var(--white);
+  border-right: 1px solid var(--gray-200);
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex-shrink: 0;
+  transition: width 0.2s, min-width 0.2s;
+}
+
+#shape-panel.collapsed {
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+#shape-panel::-webkit-scrollbar { width: 6px; }
+#shape-panel::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
+
+.panel-section {
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.panel-section-header {
+  padding: 8px 12px;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--gray-600);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--gray-50);
+}
+
+.panel-section-header:hover { background: var(--gray-100); }
+
+.panel-section-header .arrow {
+  transition: transform 0.2s;
+  font-size: 10px;
+}
+
+.panel-section-header.collapsed .arrow { transform: rotate(-90deg); }
+
+.panel-section-body {
+  padding: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.panel-section-body.hidden { display: none; }
+
+.shape-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: grab;
+  transition: all 0.15s;
+}
+
+.shape-item:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+.shape-item svg {
+  width: 48px;
+  height: 36px;
+  margin-bottom: 3px;
+}
+
+.shape-item .shape-label {
+  font-size: 10px;
+  color: var(--gray-500);
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* ===== CANVAS AREA ===== */
+#canvas-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: var(--gray-100);
+  cursor: default;
+}
+
+#canvas-svg {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+#canvas-svg .grid-pattern { stroke: var(--gray-300); stroke-width: 0.5; }
+
+.shape-node { cursor: move; }
+.shape-node:hover .shape-outline { filter: brightness(0.95); }
+.shape-node.selected .shape-outline {
+  stroke: var(--primary) !important;
+  stroke-width: 2 !important;
+  stroke-dasharray: none !important;
+}
+
+.resize-handle {
+  fill: var(--white);
+  stroke: var(--primary);
+  stroke-width: 1.5;
+  cursor: nwse-resize;
+  r: 4;
+}
+
+.resize-handle.n, .resize-handle.s { cursor: ns-resize; }
+.resize-handle.e, .resize-handle.w { cursor: ew-resize; }
+.resize-handle.nw, .resize-handle.se { cursor: nwse-resize; }
+.resize-handle.ne, .resize-handle.sw { cursor: nesw-resize; }
+
+.connection-point {
+  fill: var(--white);
+  stroke: var(--success);
+  stroke-width: 2;
+  r: 5;
+  opacity: 0;
+  cursor: crosshair;
+  transition: opacity 0.15s;
+}
+
+.shape-node:hover .connection-point,
+.connection-point.visible {
+  opacity: 1;
+}
+
+.connection-point:hover {
+  fill: var(--success);
+  r: 6;
+}
+
+.connector-line {
+  fill: none;
+  stroke: var(--gray-600);
+  stroke-width: 2;
+  cursor: pointer;
+}
+
+.connector-line:hover { stroke: var(--primary); }
+.connector-line.selected { stroke: var(--primary); stroke-width: 2.5; }
+
+.smart-guide {
+  stroke: var(--primary);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  pointer-events: none;
+}
+
+.selection-rect {
+  fill: rgba(37, 99, 235, 0.12);
+  stroke: var(--primary);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+  pointer-events: none;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ===== PROPERTIES PANEL ===== */
+#props-panel {
+  width: var(--props-width);
+  min-width: var(--props-width);
+  background: var(--white);
+  border-left: 1px solid var(--gray-200);
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex-shrink: 0;
+  transition: width 0.2s, min-width 0.2s;
+}
+
+#props-panel.collapsed {
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+#props-panel::-webkit-scrollbar { width: 6px; }
+#props-panel::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
+
+.props-section {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.props-title {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--gray-600);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.props-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+  gap: 6px;
+}
+
+.props-row label {
+  font-size: 12px;
+  color: var(--gray-500);
+  min-width: 50px;
+  flex-shrink: 0;
+}
+
+.props-row input[type="number"],
+.props-row input[type="text"],
+.props-row select {
+  flex: 1;
+  height: 26px;
+  border: 1px solid var(--gray-200);
+  border-radius: 4px;
+  padding: 0 6px;
+  font-size: 12px;
+  font-family: var(--font);
+  color: var(--gray-700);
+  background: var(--white);
+  outline: none;
+  min-width: 0;
+}
+
+.props-row input:focus, .props-row select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.props-row input[type="color"] {
+  width: 32px;
+  height: 26px;
+  border: 1px solid var(--gray-200);
+  border-radius: 4px;
+  padding: 2px;
+  cursor: pointer;
+  background: var(--white);
+}
+
+.props-row input[type="range"] {
+  flex: 1;
+  height: 4px;
+  appearance: none;
+  background: var(--gray-200);
+  border-radius: 2px;
+  outline: none;
+}
+
+.props-row input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+}
+
+.props-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+}
+
+.props-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--gray-200);
+  border-radius: 4px;
+  background: var(--white);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--gray-600);
+}
+
+.props-btn:hover { background: var(--gray-50); border-color: var(--gray-300); }
+.props-btn.active { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+
+/* ===== STATUS BAR ===== */
+#status-bar {
+  height: var(--statusbar-height);
+  background: var(--white);
+  border-top: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 11px;
+  color: var(--gray-500);
+  gap: 16px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-sep {
+  width: 1px;
+  height: 14px;
+  background: var(--gray-200);
+}
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.zoom-controls button {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--gray-200);
+  border-radius: 3px;
+  background: var(--white);
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--gray-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.zoom-controls button:hover { background: var(--gray-50); }
+
+/* ===== MINIMAP ===== */
+#minimap {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 160px;
+  height: 110px;
+  background: var(--white);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  z-index: 50;
+  overflow: hidden;
+}
+
+#minimap svg { width: 100%; height: 100%; }
+
+.minimap-viewport {
+  fill: rgba(37, 99, 235, 0.1);
+  stroke: var(--primary);
+  stroke-width: 1.5;
+}
+
+/* ===== MODAL ===== */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay.show { display: flex; }
+
+.modal {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.modal-close {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 18px;
+  color: var(--gray-400);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover { background: var(--gray-100); color: var(--gray-600); }
+
+.modal-body { padding: 20px; }
+
+.modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--gray-200);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btn {
+  padding: 7px 16px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-family: var(--font);
+  cursor: pointer;
+  border: 1px solid var(--gray-200);
+  background: var(--white);
+  color: var(--gray-700);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.btn:hover { background: var(--gray-50); }
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--white);
+  border-color: var(--primary);
+}
+
+.btn-primary:hover { background: var(--primary-hover); }
+
+.btn-danger {
+  background: var(--danger);
+  color: var(--white);
+  border-color: var(--danger);
+}
+
+/* ===== WELCOME SCREEN ===== */
+#welcome-screen {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(248, 250, 252, 0.97);
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#welcome-screen.hidden { display: none; }
+
+.welcome-card {
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 40px;
+  text-align: center;
+  max-width: 480px;
+  width: 90%;
+}
+
+.welcome-card h1 {
+  font-size: 24px;
+  color: var(--gray-800);
+  margin-bottom: 6px;
+}
+
+.welcome-card p {
+  color: var(--gray-500);
+  margin-bottom: 28px;
+  font-size: 14px;
+}
+
+.welcome-card .welcome-logo {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.welcome-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.welcome-btn {
+  padding: 12px 20px;
+  border-radius: var(--radius-lg);
+  font-size: 14px;
+  font-family: var(--font);
+  cursor: pointer;
+  border: 1px solid var(--gray-200);
+  background: var(--white);
+  color: var(--gray-700);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.15s;
+  text-align: left;
+}
+
+.welcome-btn:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.welcome-btn .icon { font-size: 20px; width: 28px; text-align: center; }
+.welcome-btn .text .title { font-weight: 600; }
+.welcome-btn .text .desc { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
+
+/* ===== CONTEXT MENU ===== */
+#context-menu {
+  display: none;
+  position: fixed;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  min-width: 180px;
+  z-index: 2500;
+  padding: 4px 0;
+}
+
+#context-menu.show { display: block; }
+
+.ctx-item {
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--gray-700);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ctx-item:hover { background: var(--primary-light); color: var(--primary); }
+.ctx-sep { height: 1px; background: var(--gray-200); margin: 4px 0; }
+
+/* ===== TEXT EDITOR ===== */
+.text-editor-container {
+  position: absolute;
+  z-index: 100;
+}
+
+.text-editor-container textarea {
+  border: 2px solid var(--primary);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-family: var(--font);
+  font-size: 13px;
+  resize: none;
+  outline: none;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--gray-800);
+  overflow: hidden;
+}
+
+/* ===== Mermaid Textarea ===== */
+.mermaid-textarea {
+  width: 100%;
+  min-height: 200px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 10px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 13px;
+  color: var(--gray-800);
+  resize: vertical;
+  outline: none;
+}
+
+.mermaid-textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+/* ===== SEARCH BAR ===== */
+.search-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.search-bar input {
+  flex: 1;
+  height: 30px;
+  border: 1px solid var(--gray-200);
+  border-radius: 4px;
+  padding: 0 8px;
+  font-size: 13px;
+  outline: none;
+  font-family: var(--font);
+}
+
+.search-bar input:focus {
+  border-color: var(--primary);
+}
+
+/* ===== THEME GRID ===== */
+.theme-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.theme-card {
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 10px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+}
+
+.theme-card:hover { border-color: var(--primary); }
+.theme-card.active { border-color: var(--primary); background: var(--primary-light); }
+
+.theme-card .preview {
+  height: 40px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.theme-card .preview span {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+}
+
+.theme-card .name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-600);
+}
+
+/* ===== KEYBOARD SHORTCUTS ===== */
+.shortcuts-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+}
+
+.shortcut-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
+.shortcut-item .key {
+  background: var(--gray-100);
+  border: 1px solid var(--gray-200);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 11px;
+  color: var(--gray-600);
+  font-family: 'Consolas', monospace;
+}
+
+/* Print */
+@media print {
+  #menu-bar, #toolbar, #shape-panel, #props-panel, #status-bar, #minimap,
+  #welcome-screen, #context-menu, .modal-overlay { display: none !important; }
+  #canvas-container { position: static; width: 100%; height: auto; overflow: visible; }
+  #canvas-svg { position: static; width: 100%; height: auto; }
+}
+
+/* Drag ghost */
+.drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 5000;
+  opacity: 0.7;
+}
+/* Password Screen */
+#password-screen {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--gray-900);
+  background-image: radial-gradient(circle at top right, var(--gray-800), var(--gray-900));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+}
+.password-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 40px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.password-card h1 {
+  font-size: 20px;
+  color: var(--gray-800);
+  margin-bottom: 6px;
+}
+.password-card p {
+  color: var(--gray-500);
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+.password-card .password-logo {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+#password-screen.hidden {
+  display: none !important;
+}
+</style>
+</head>
+<body>
+
+<!-- ===== MENU BAR ===== -->
+<div id="menu-bar">
+  <div class="menu-item" data-menu="file">File
+    <div class="menu-dropdown" id="menu-file">
+      <div class="menu-dropdown-item" onclick="FC.newFile()">New <span class="shortcut">Ctrl+N</span></div>
+      <div class="menu-dropdown-item" onclick="FC.openFile()">Open... <span class="shortcut">Ctrl+O</span></div>
+      <div class="menu-separator"></div>
+      <div class="menu-dropdown-item" onclick="FC.saveFile()">Save as JSON <span class="shortcut">Ctrl+S</span></div>
+      <div class="menu-separator"></div>
+      <div class="menu-dropdown-item" onclick="FC.importMermaidDialog()">Import Mermaid...</div>
+      <div class="menu-dropdown-item" onclick="FC.exportMermaidDialog()">Export Mermaid...</div>
+      <div class="menu-separator"></div>
+      <div class="menu-dropdown-item" onclick="FC.exportPNG()">Export as PNG <span class="shortcut">Ctrl+E</span></div>
+      <div class="menu-dropdown-item" onclick="FC.exportSVG()">Export as SVG</div>
+      <div class="menu-separator"></div>
+      <div class="menu-dropdown-item" onclick="window.print()">Print <span class="shortcut">Ctrl+P</span></div>
+    </div>
+  </div>
+  <div class="menu-item" data-menu="edit">Edit
+    <div class="menu-dropdown" id="menu-edit">
+      <div class="menu-dropdown-item" id="mi-undo" onclick="FC.undo()">Undo <span class="shortcut">Ctrl+Z</span></div>
+      <div class="menu-dropdown-item" id="mi-redo" onclick="FC.redo()">Redo <span class="shortcut">Ctrl+Y</span></div>
+      <div class="menu-separator"></div>
+      <div class="menu-dropdown-item" onclick="FC.cutSelected()">Cut <span class="shortcut">Ctrl+X</span></div>
+      <div class="menu-dropdown-item" onclick="FC.copySelected()">Copy <span class="shortcut">Ctrl+C</span></div>
+      <div class="menu-dropdown-item" onclick="FC.paste()">Paste <span class="shortcut">Ctrl+V</span></div>
+      <div class="menu-dropdown-item" onclick="FC.duplicateSelected()">Duplicate <span class="shortcut">Ctrl+D</span></div>
+      <div class="menu-separator"></div>
+      <div class="menu-dropdown-item" onclick="FC.selectAll()">Select All <span class="shortcut">Ctrl+A</span></div>
+      <div class="menu-dropdown-item" onclick="FC.deleteSelected()">Delete <span class="shortcut">Del</span></div>
+      <div class="menu-separator"></div>
+      <div class="menu-dropdown-item" onclick="FC.searchReplaceDialog()">Find & Replace <span class="shortcut">Ctrl+H</span></div>
+    </div>
+  </div>
+  <div class="menu-item" data-menu="view">View
+    <div class="menu-dropdown" id="menu-view">
+      <div class="menu-dropdown-item" onclick="FC.zoomIn()">Zoom In <span class="shortcut">Ctrl+=</span></div>
+      <div class="menu-dropdown-item" onclick="FC.zoomOut()">Zoom Out <span class="shortcut">Ctrl+-</span></div>
+      <div class="menu-dropdown-item" onclick="FC.zoomReset()">Zoom 100% <span class="shortcut">Ctrl+0</span></div>
+      <div class="menu-dropdown-item" onclick="FC.zoomFit()">Fit to Content</div>
+      <div class="menu-separator"></div>
+      <div class="menu-dropdown-item" onclick="FC.toggleGrid()">Toggle Grid</div>
+      <div class="menu-dropdown-item" onclick="FC.toggleSnap()">Toggle Snap to Grid</div>
+      <div class="menu-separator"></div>
+      <div class="menu-dropdown-item" onclick="FC.togglePanel('shape-panel')">Toggle Shape Panel</div>
+      <div class="menu-dropdown-item" onclick="FC.togglePanel('props-panel')">Toggle Properties Panel</div>
+    </div>
+  </div>
+  <div class="menu-item" data-menu="insert">Insert
+    <div class="menu-dropdown" id="menu-insert">
+      <div class="menu-dropdown-item" onclick="FC.addShapeCenter('process')">Process</div>
+      <div class="menu-dropdown-item" onclick="FC.addShapeCenter('decision')">Decision</div>
+      <div class="menu-dropdown-item" onclick="FC.addShapeCenter('startend')">Start/End</div>
+      <div class="menu-dropdown-item" onclick="FC.addShapeCenter('data')">Data/IO</div>
+      <div class="menu-dropdown-item" onclick="FC.addShapeCenter('document')">Document</div>
+      <div class="menu-dropdown-item" onclick="FC.addShapeCenter('connector_circle')">Connector</div>
+      <div class="menu-separator"></div>
+      <div class="menu-dropdown-item" onclick="FC.addShapeCenter('rectangle')">Rectangle</div>
+      <div class="menu-dropdown-item" onclick="FC.addShapeCenter('ellipse')">Ellipse</div>
+      <div class="menu-dropdown-item" onclick="FC.addShapeCenter('textbox')">Text Box</div>
+    </div>
+  </div>
+  <div class="menu-item" data-menu="format">Format
+    <div class="menu-dropdown" id="menu-format">
+      <div class="menu-dropdown-item" onclick="FC.bringToFront()">Bring to Front</div>
+      <div class="menu-dropdown-item" onclick="FC.sendToBack()">Send to Back</div>
+      <div class="menu-separator"></div>
+      <div class="menu-dropdown-item" onclick="FC.alignSelected('left')">Align Left</div>
+      <div class="menu-dropdown-item" onclick="FC.alignSelected('center')">Align Center</div>
+      <div class="menu-dropdown-item" onclick="FC.alignSelected('right')">Align Right</div>
+      <div class="menu-dropdown-item" onclick="FC.alignSelected('top')">Align Top</div>
+      <div class="menu-dropdown-item" onclick="FC.alignSelected('middle')">Align Middle</div>
+      <div class="menu-dropdown-item" onclick="FC.alignSelected('bottom')">Align Bottom</div>
+      <div class="menu-separator"></div>
+      <div class="menu-dropdown-item" onclick="FC.distribute('horizontal')">Distribute Horizontally</div>
+      <div class="menu-dropdown-item" onclick="FC.distribute('vertical')">Distribute Vertically</div>
+      <div class="menu-separator"></div>
+      <div class="menu-dropdown-item" onclick="FC.themeDialog()">Themes...</div>
+    </div>
+  </div>
+  <div class="menu-item" data-menu="help">Help
+    <div class="menu-dropdown" id="menu-help">
+      <div class="menu-dropdown-item" onclick="FC.shortcutsDialog()">Keyboard Shortcuts</div>
+      <div class="menu-dropdown-item" onclick="FC.aboutDialog()">About</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TOOLBAR ===== -->
+<div id="toolbar">
+  <button class="tool-btn active" data-tool="select" data-tooltip="Select (V)" onclick="FC.setTool('select')">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M3 1l10 6.5L8.5 9l-2 5L3 1z"/></svg>
+  </button>
+  <button class="tool-btn" data-tool="pan" data-tooltip="Pan (H)" onclick="FC.setTool('pan')">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1v4M8 11v4M1 8h4M11 8h4M8 1L6 3h4L8 1zM8 15l-2-2h4l-2 2zM1 8l2-2v4L1 8zM15 8l-2-2v4l2-2z"/></svg>
+  </button>
+  <button class="tool-btn" data-tool="connector" data-tooltip="Connector (L)" onclick="FC.setTool('connector')">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="13" x2="13" y2="3"/><polygon points="13,3 9,4 12,7" fill="currentColor"/><circle cx="3" cy="13" r="2"/></svg>
+  </button>
+  <button class="tool-btn" data-tool="text" data-tooltip="Text (T)" onclick="FC.setTool('text')">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M3 3h10v2h-4v8H7V5H3V3z"/></svg>
+  </button>
+
+  <div class="tool-sep"></div>
+
+  <button class="tool-btn" data-tooltip="Undo (Ctrl+Z)" onclick="FC.undo()" id="btn-undo">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M6 3L2 7l4 4V8.5c4 0 6.5 1.5 8 4.5-1-4-4-7-8-7V3z"/></svg>
+  </button>
+  <button class="tool-btn" data-tooltip="Redo (Ctrl+Y)" onclick="FC.redo()" id="btn-redo">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M10 3l4 4-4 4V8.5c-4 0-6.5 1.5-8 4.5 1-4 4-7 8-7V3z"/></svg>
+  </button>
+
+  <div class="tool-sep"></div>
+
+  <button class="tool-btn" data-tooltip="Delete (Del)" onclick="FC.deleteSelected()">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M5 2V1h6v1h3v2H2V2h3zM3 5h10l-1 10H4L3 5zm3 2v6h1V7H6zm3 0v6h1V7H9z"/></svg>
+  </button>
+
+  <div class="tool-sep"></div>
+
+  <button class="tool-btn" data-tooltip="Align Left" onclick="FC.alignSelected('left')">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="1.5" height="12"/><rect x="5" y="4" width="8" height="3" rx="0.5"/><rect x="5" y="9" width="5" height="3" rx="0.5"/></svg>
+  </button>
+  <button class="tool-btn" data-tooltip="Align Center" onclick="FC.alignSelected('center')">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="7.25" y="2" width="1.5" height="12"/><rect x="3" y="4" width="10" height="3" rx="0.5"/><rect x="4.5" y="9" width="7" height="3" rx="0.5"/></svg>
+  </button>
+  <button class="tool-btn" data-tooltip="Align Right" onclick="FC.alignSelected('right')">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="12.5" y="2" width="1.5" height="12"/><rect x="3" y="4" width="8" height="3" rx="0.5"/><rect x="6" y="9" width="5" height="3" rx="0.5"/></svg>
+  </button>
+
+  <div class="tool-sep"></div>
+
+  <button class="tool-btn" data-tooltip="Bring to Front" onclick="FC.bringToFront()">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="5" width="7" height="7" rx="1" opacity="0.3"/><rect x="5" y="1" width="10" height="10" rx="1"/></svg>
+  </button>
+  <button class="tool-btn" data-tooltip="Send to Back" onclick="FC.sendToBack()">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="5" y="5" width="10" height="10" rx="1" opacity="0.3"/><rect x="1" y="1" width="7" height="7" rx="1"/></svg>
+  </button>
+
+  <div class="tool-sep"></div>
+
+  <button class="tool-btn" data-tooltip="Themes" onclick="FC.themeDialog()">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="5" r="3" fill="#2563eb"/><circle cx="11" cy="5" r="3" fill="#22c55e"/><circle cx="8" cy="10" r="3" fill="#f59e0b"/></svg>
+  </button>
+  <button class="tool-btn" data-tooltip="Import Mermaid" onclick="FC.importMermaidDialog()">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h5l2 2h5v10H2V2zm2 2v8h8V6H8.5L6.5 4H4z"/></svg>
+  </button>
+</div>
+
+<!-- ===== MAIN CONTAINER ===== -->
+<div id="main-container">
+
+  <!-- Shape Panel -->
+  <div id="shape-panel">
+    <div class="panel-section">
+      <div class="panel-section-header" onclick="FC.toggleSection(this)">
+        Flowchart <span class="arrow">▼</span>
+      </div>
+      <div class="panel-section-body" id="flowchart-shapes"></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-header" onclick="FC.toggleSection(this)">
+        Connectors <span class="arrow">▼</span>
+      </div>
+      <div class="panel-section-body" id="connector-presets"></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-header" onclick="FC.toggleSection(this)">
+        Basic Shapes <span class="arrow">▼</span>
+      </div>
+      <div class="panel-section-body" id="basic-shapes"></div>
+    </div>
+  </div>
+
+  <!-- Canvas -->
+  <div id="canvas-container">
+    <svg id="canvas-svg" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="grid-dots" width="20" height="20" patternUnits="userSpaceOnUse">
+          <circle cx="10" cy="10" r="0.8" fill="#cbd5e1"/>
+        </pattern>
+        <marker id="arrow-filled" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/>
+        </marker>
+        <marker id="arrow-open" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10" fill="none" stroke="context-stroke" stroke-width="1.5"/>
+        </marker>
+        <marker id="circle-filled" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <circle cx="5" cy="5" r="4" fill="context-stroke"/>
+        </marker>
+        <marker id="circle-open" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <circle cx="5" cy="5" r="3.5" fill="white" stroke="context-stroke" stroke-width="1.5"/>
+        </marker>
+        <marker id="diamond-filled" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M5,0 L10,5 L5,10 L0,5 z" fill="context-stroke"/>
+        </marker>
+        <marker id="diamond-open" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M5,1 L9,5 L5,9 L1,5 z" fill="white" stroke="context-stroke" stroke-width="1"/>
+        </marker>
+        <marker id="bar" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M10,0 L10,10" stroke="context-stroke" stroke-width="2"/>
+        </marker>
+        <filter id="shadow-filter" x="-10%" y="-10%" width="130%" height="130%">
+          <feDropShadow dx="2" dy="2" stdDeviation="3" flood-color="rgba(0,0,0,0.15)"/>
+        </filter>
+      </defs>
+      <rect id="grid-bg" width="100%" height="100%" fill="url(#grid-dots)"/>
+      <g id="canvas-layers">
+        <g id="layer-guides"></g>
+        <g id="layer-connectors"></g>
+        <g id="layer-shapes"></g>
+        <g id="layer-handles"></g>
+        <g id="layer-selection"></g>
+      </g>
+    </svg>
+    <div id="minimap">
+      <svg id="minimap-svg" xmlns="http://www.w3.org/2000/svg">
+        <g id="minimap-content"></g>
+        <rect class="minimap-viewport" id="minimap-vp" x="0" y="0" width="50" height="35"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Properties Panel -->
+  <div id="props-panel">
+    <div id="props-content">
+      <div class="props-section">
+        <div class="props-title">Canvas</div>
+        <div class="props-row">
+          <label>Grid</label>
+          <input type="checkbox" id="prop-grid" checked onchange="FC.toggleGrid(this.checked)">
+          <label style="min-width:auto">Snap</label>
+          <input type="checkbox" id="prop-snap" checked onchange="FC.toggleSnap(this.checked)">
+        </div>
+        <div class="props-row">
+          <label>Size</label>
+          <input type="number" id="prop-grid-size" value="20" min="5" max="50" style="width:60px" onchange="FC.setGridSize(+this.value)">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STATUS BAR ===== -->
+<div id="status-bar">
+  <div class="status-item" id="status-tool">Tool: Select</div>
+  <div class="status-sep"></div>
+  <div class="status-item" id="status-pos">X: 0  Y: 0</div>
+  <div class="status-sep"></div>
+  <div class="status-item" id="status-count">Objects: 0</div>
+  <div class="status-sep"></div>
+  <div class="status-item" id="status-save">Auto-saved: --</div>
+  <div class="zoom-controls">
+    <button onclick="FC.zoomOut()" data-tooltip="Zoom Out">−</button>
+    <span id="status-zoom">100%</span>
+    <button onclick="FC.zoomIn()" data-tooltip="Zoom In">+</button>
+    <button onclick="FC.zoomFit()" data-tooltip="Fit" style="font-size:11px;width:32px">Fit</button>
+  </div>
+</div>
+
+<!-- ===== WELCOME SCREEN ===== -->
+<div id="welcome-screen">
+  <div class="welcome-card">
+    <div class="welcome-logo">📊</div>
+    <h1>Flowchart Creator</h1>
+    <p>Professional flowchart and diagram editor</p>
+    <div class="welcome-actions">
+      <button class="welcome-btn" onclick="FC.closeWelcome()">
+        <span class="icon">✨</span>
+        <span class="text"><span class="title">New Flowchart</span><span class="desc">Start with a blank canvas</span></span>
+      </button>
+      <button class="welcome-btn" onclick="FC.openFile(); FC.closeWelcome()">
+        <span class="icon">📂</span>
+        <span class="text"><span class="title">Open File</span><span class="desc">Open a saved JSON flowchart</span></span>
+      </button>
+      <button class="welcome-btn" onclick="FC.importMermaidDialog(); FC.closeWelcome()">
+        <span class="icon">📝</span>
+        <span class="text"><span class="title">Import Mermaid</span><span class="desc">Create from Mermaid code</span></span>
+      </button>
+      <button class="welcome-btn" id="welcome-restore" style="display:none" onclick="FC.restoreSession(); FC.closeWelcome()">
+        <span class="icon">🔄</span>
+        <span class="text"><span class="title">Restore Last Session</span><span class="desc">Continue where you left off</span></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PASSWORD ACCESS SCREEN ===== -->
+<div id="password-screen">
+  <div class="password-card">
+    <div class="password-logo">🔒</div>
+    <h1>Access Restricted</h1>
+    <p>Please enter the access key to use Flowchart Creator</p>
+    <div style="display:flex; flex-direction:column; gap:10px; width:100%">
+      <input type="password" id="access-key-input" placeholder="Enter key..." style="height:32px; font-size:13px; text-align:center">
+      <button class="btn btn-primary" onclick="FC.checkAccessKey()" style="justify-content:center; width:100%; height:32px">Verify Key</button>
+      <div id="password-error" style="color:var(--danger); font-size:12px; margin-top:4px; display:none; font-weight:600">Incorrect access key!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CONTEXT MENU ===== -->
+<div id="context-menu"></div>
+
+<!-- ===== MODALS ===== -->
+<div class="modal-overlay" id="modal-mermaid-import">
+  <div class="modal">
+    <div class="modal-header"><h3>Import Mermaid Flowchart</h3><button class="modal-close" onclick="FC.closeModal('modal-mermaid-import')">✕</button></div>
+    <div class="modal-body">
+      <p style="margin-bottom:10px;color:var(--gray-500);font-size:13px">Paste Mermaid flowchart code below. Supports graph TD/LR/BT/RL syntax.</p>
+      <textarea class="mermaid-textarea" id="mermaid-import-text" placeholder="graph TD&#10;    A[Start] --> B{Decision}&#10;    B -->|Yes| C[Process]&#10;    B -->|No| D[End]"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="FC.closeModal('modal-mermaid-import')">Cancel</button>
+      <button class="btn btn-primary" onclick="FC.importMermaid()">Import</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-mermaid-export">
+  <div class="modal">
+    <div class="modal-header"><h3>Export Mermaid Code</h3><button class="modal-close" onclick="FC.closeModal('modal-mermaid-export')">✕</button></div>
+    <div class="modal-body">
+      <textarea class="mermaid-textarea" id="mermaid-export-text" readonly></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="FC.closeModal('modal-mermaid-export')">Close</button>
+      <button class="btn btn-primary" onclick="FC.copyMermaidExport()">Copy to Clipboard</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-shortcuts">
+  <div class="modal">
+    <div class="modal-header"><h3>Keyboard Shortcuts</h3><button class="modal-close" onclick="FC.closeModal('modal-shortcuts')">✕</button></div>
+    <div class="modal-body">
+      <div class="shortcuts-list" id="shortcuts-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-themes">
+  <div class="modal">
+    <div class="modal-header"><h3>Themes</h3><button class="modal-close" onclick="FC.closeModal('modal-themes')">✕</button></div>
+    <div class="modal-body">
+      <div class="theme-grid" id="theme-grid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-search">
+  <div class="modal">
+    <div class="modal-header"><h3>Find & Replace</h3><button class="modal-close" onclick="FC.closeModal('modal-search')">✕</button></div>
+    <div class="modal-body">
+      <div class="search-bar">
+        <input type="text" id="search-find" placeholder="Find...">
+        <button class="btn" onclick="FC.findText()">Find</button>
+      </div>
+      <div class="search-bar">
+        <input type="text" id="search-replace" placeholder="Replace with...">
+        <button class="btn" onclick="FC.replaceText()">Replace</button>
+        <button class="btn" onclick="FC.replaceAllText()">All</button>
+      </div>
+      <div id="search-result" style="margin-top:8px;font-size:12px;color:var(--gray-500)"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-about">
+  <div class="modal">
+    <div class="modal-header"><h3>About</h3><button class="modal-close" onclick="FC.closeModal('modal-about')">✕</button></div>
+    <div class="modal-body" style="text-align:center">
+      <div style="font-size:48px;margin-bottom:12px">📊</div>
+      <h2 style="margin-bottom:4px">Professional Flowchart Creator</h2>
+      <p style="color:var(--gray-500);margin-bottom:16px">Version 1.0</p>
+      <p style="color:var(--gray-500);font-size:13px">A complete flowchart editor built with vanilla JavaScript and SVG.<br>Supports Thai language (ภาษาไทย), Mermaid import/export, themes, and more.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden file inputs -->
+<input type="file" id="file-open" accept=".json" style="display:none" onchange="FC.handleOpenFile(event)">
+
+<script>
+// ============================================================
+// PROFESSIONAL FLOWCHART CREATOR - COMPLETE APPLICATION
+// ============================================================
+const FC = {};
+
+// ===== SHAPE DEFINITIONS =====
+FC.SHAPE_DEFS = {
+  // Flowchart shapes
+  process:          { label: 'Process',           cat: 'flow', w: 140, h: 60 },
+  decision:         { label: 'Decision',          cat: 'flow', w: 120, h: 100 },
+  startend:         { label: 'Start/End',         cat: 'flow', w: 140, h: 60 },
+  data:             { label: 'Data/IO',           cat: 'flow', w: 140, h: 60 },
+  document:         { label: 'Document',          cat: 'flow', w: 140, h: 60 },
+  predefined:       { label: 'Predefined',        cat: 'flow', w: 140, h: 60 },
+  manual_input:     { label: 'Manual Input',      cat: 'flow', w: 140, h: 60 },
+  preparation:      { label: 'Preparation',       cat: 'flow', w: 140, h: 60 },
+  connector_circle: { label: 'Connector',         cat: 'flow', w: 50,  h: 50 },
+  database:         { label: 'Database',          cat: 'flow', w: 100, h: 80 },
+  manual_operation: { label: 'Manual Op',         cat: 'flow', w: 140, h: 60 },
+  delay:            { label: 'Delay',             cat: 'flow', w: 120, h: 60 },
+  display:          { label: 'Display',           cat: 'flow', w: 140, h: 60 },
+  merge:            { label: 'Merge',             cat: 'flow', w: 80,  h: 70 },
+  extract:          { label: 'Extract',           cat: 'flow', w: 80,  h: 70 },
+  // Basic shapes
+  rectangle:        { label: 'Rectangle',         cat: 'basic', w: 140, h: 80 },
+  ellipse:          { label: 'Ellipse',           cat: 'basic', w: 120, h: 80 },
+  textbox:          { label: 'Text',              cat: 'basic', w: 120, h: 40 },
+};
+
+// ===== THEMES =====
+FC.THEMES = {
+  classic:      { name: 'Office Classic',      fill: '#dbeafe', stroke: '#2563eb', text: '#1e293b', connStroke: '#64748b' },
+  blue:         { name: 'Professional Blue',   fill: '#1e3a5f', stroke: '#0c4a6e', text: '#ffffff', connStroke: '#38bdf8' },
+  teal:         { name: 'Modern Teal',         fill: '#ccfbf1', stroke: '#0d9488', text: '#134e4a', connStroke: '#0d9488' },
+  gray:         { name: 'Corporate Gray',      fill: '#e2e8f0', stroke: '#475569', text: '#1e293b', connStroke: '#475569' },
+  vibrant:      { name: 'Vibrant',             fill: '#fef3c7', stroke: '#f59e0b', text: '#78350f', connStroke: '#ef4444' },
+  pastel:       { name: 'Pastel',              fill: '#fce7f3', stroke: '#ec4899', text: '#831843', connStroke: '#a855f7' },
+  dark:         { name: 'Dark Professional',   fill: '#334155', stroke: '#64748b', text: '#f1f5f9', connStroke: '#94a3b8' },
+  mono:         { name: 'Monochrome',          fill: '#ffffff', stroke: '#000000', text: '#000000', connStroke: '#000000' },
+  nord:         { name: 'Nordic Breeze',       fill: '#eceff4', stroke: '#5e81ac', text: '#2e3440', connStroke: '#81a1c1' },
+  sunset:       { name: 'Sunset Glow',         fill: '#ffedd5', stroke: '#ea580c', text: '#7c2d12', connStroke: '#ea580c' },
+  forest:       { name: 'Forest Leaf',         fill: '#f0fdf4', stroke: '#16a34a', text: '#14532d', connStroke: '#16a34a' },
+  lavender:     { name: 'Lavender Dreams',     fill: '#e0e7ff', stroke: '#4f46e5', text: '#1e1b4b', connStroke: '#4f46e5' },
+  dracula:      { name: 'Dracula Dark',        fill: '#282a36', stroke: '#ff79c6', text: '#f8f8f2', connStroke: '#bd93f9' },
+  coffee:       { name: 'Coffee & Cream',      fill: '#fafaf9', stroke: '#78350f', text: '#451a03', connStroke: '#78350f' },
+  midnight:     { name: 'Midnight Navy',       fill: '#0f172a', stroke: '#f59e0b', text: '#f8fafc', connStroke: '#f59e0b' },
+  cyberpunk:    { name: 'Cyberpunk Neon',      fill: '#fef08a', stroke: '#db2777', text: '#0f172a', connStroke: '#db2777' },
+};
+
+FC.CONNECTOR_PRESETS = {
+  elbow_arrow:     { label: 'Elbow Arrow',     lineType: 'elbow',    lineStyle: 'solid',  startArrow: 'none',          endArrow: 'arrow-filled' },
+  elbow_rounded:   { label: 'Rounded Elbow',   lineType: 'rounded',  lineStyle: 'solid',  startArrow: 'none',          endArrow: 'arrow-filled' },
+  straight_arrow:  { label: 'Straight Arrow',  lineType: 'straight', lineStyle: 'solid',  startArrow: 'none',          endArrow: 'arrow-filled' },
+  curved_arrow:    { label: 'Curved Arrow',    lineType: 'curve',    lineStyle: 'solid',  startArrow: 'none',          endArrow: 'arrow-filled' },
+  double_arrow:    { label: 'Double Arrow',    lineType: 'elbow',    lineStyle: 'solid',  startArrow: 'arrow-filled',  endArrow: 'arrow-filled' },
+  dashed_link:     { label: 'Dashed Arrow',    lineType: 'elbow',    lineStyle: 'dashed', startArrow: 'none',          endArrow: 'arrow-filled' },
+  dotted_link:     { label: 'Dotted Line',     lineType: 'straight', lineStyle: 'dotted', startArrow: 'none',          endArrow: 'none' },
+  plain_line:      { label: 'Plain Line',      lineType: 'elbow',    lineStyle: 'solid',  startArrow: 'none',          endArrow: 'none' }
+};
+
+// ===== STATE =====
+FC.state = {
+  shapes: [],
+  connectors: [],
+  selectedIds: [],
+  clipboard: null,
+  tool: 'select',
+  activeConnectorPreset: 'elbow_arrow',
+  zoom: 1,
+  panX: 0, panY: 0,
+  gridSize: 20,
+  gridVisible: true,
+  snapToGrid: true,
+  theme: 'classic',
+  undoStack: [],
+  redoStack: [],
+  nextId: 1,
+  isPanning: false,
+  isSpacePanning: false,
+  isDragging: false,
+  isResizing: false,
+  isConnecting: false,
+  isSelecting: false,
+  dragStart: null,
+  dragOffsets: null,
+  resizeHandle: null,
+  resizeStart: null,
+  connectorDraft: null,
+  selectionRect: null,
+  autoSaveTimer: null,
+  lastAutoSave: null,
+  spaceHeld: false,
+};
+
+FC.checkAccessKey = function() {
+  const input = document.getElementById('access-key-input').value;
+  if (input === 'aaamacky') {
+    document.getElementById('password-screen').classList.add('hidden');
+    sessionStorage.setItem('fc_access_granted', 'true');
+  } else {
+    const err = document.getElementById('password-error');
+    err.style.display = 'block';
+    setTimeout(() => { err.style.display = 'none'; }, 3000);
+  }
+};
+
+FC.preventDevTools = function() {
+  // Disable right-click except on canvas & context-menu
+  document.addEventListener('contextmenu', (e) => {
+    if (!e.target.closest('#canvas-svg') && !e.target.closest('#context-menu') && sessionStorage.getItem('fc_access_granted') === 'true') {
+      e.preventDefault();
+    }
+  });
+
+  // Block key combinations
+  document.addEventListener('keydown', (e) => {
+    // F12
+    if (e.key === 'F12') {
+      e.preventDefault();
+      return false;
+    }
+    // Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) {
+      e.preventDefault();
+      return false;
+    }
+    // Ctrl+U (View Source)
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'U' || e.key === 'u')) {
+      e.preventDefault();
+      return false;
+    }
+  }, true);
+
+  // Anti-debugging loop
+  setInterval(() => {
+    (function() {
+      const before = new Date().getTime();
+      debugger;
+      const after = new Date().getTime();
+      if (after - before > 100) {
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0f172a;color:#f8fafc;font-family:sans-serif;font-size:24px">Developer Tools are disabled.</div>';
+      }
+    })();
+  }, 1000);
+};
+
+// ===== INITIALIZE =====
+FC.init = function() {
+  // Access key check setup
+  const inputEl = document.getElementById('access-key-input');
+  if (inputEl) {
+    inputEl.focus();
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') FC.checkAccessKey();
+    });
+  }
+
+  if (sessionStorage.getItem('fc_access_granted') === 'true') {
+    document.getElementById('password-screen').classList.add('hidden');
+  }
+
+  FC.preventDevTools();
+  FC.svg = document.getElementById('canvas-svg');
+  FC.container = document.getElementById('canvas-container');
+  FC.layerShapes = document.getElementById('layer-shapes');
+  FC.layerConnectors = document.getElementById('layer-connectors');
+  FC.layerHandles = document.getElementById('layer-handles');
+  FC.layerGuides = document.getElementById('layer-guides');
+  FC.layerSelection = document.getElementById('layer-selection');
+
+  FC.buildShapePanel();
+  FC.buildConnectorPanel();
+  FC.bindEvents();
+  FC.updateViewBox();
+  FC.updateStatusBar();
+  FC.buildShortcutsList();
+  FC.buildThemeGrid();
+
+  // Check for auto-save
+  const saved = localStorage.getItem('fc_autosave');
+  if (saved) {
+    document.getElementById('welcome-restore').style.display = '';
+  }
+
+  // Start auto-save timer
+  FC.state.autoSaveTimer = setInterval(() => FC.autoSave(), 30000);
+};
+
+// ===== SHAPE PATH GENERATORS =====
+FC.getShapePath = function(type, w, h) {
+  const hw = w / 2, hh = h / 2;
+  switch(type) {
+    case 'process':
+    case 'rectangle':
+      return `M0,0 H${w} V${h} H0 Z`;
+    case 'decision':
+      return `M${hw},0 L${w},${hh} L${hw},${h} L0,${hh} Z`;
+    case 'startend':
+      return `M${hh},0 H${w-hh} A${hh},${hh} 0 0 1 ${w-hh},${h} H${hh} A${hh},${hh} 0 0 1 ${hh},0 Z`;
+    case 'data': {
+      const sk = w * 0.15;
+      return `M${sk},0 H${w} L${w-sk},${h} H0 Z`;
+    }
+    case 'document': {
+      const cy = h * 0.85;
+      return `M0,0 H${w} V${cy} Q${w*0.75},${h+6} ${hw},${cy} Q${w*0.25},${cy-12} 0,${cy} Z`;
+    }
+    case 'predefined': {
+      const bw = 10;
+      return `M0,0 H${w} V${h} H0 Z M${bw},0 V${h} M${w-bw},0 V${h}`;
+    }
+    case 'manual_input': {
+      const sl = h * 0.25;
+      return `M0,${sl} L${w},0 V${h} H0 Z`;
+    }
+    case 'preparation': {
+      const hx = w * 0.18;
+      return `M${hx},0 H${w-hx} L${w},${hh} L${w-hx},${h} H${hx} L0,${hh} Z`;
+    }
+    case 'connector_circle':
+      return `M${hw},0 A${hw},${hh} 0 1 1 ${hw},${h} A${hw},${hh} 0 1 1 ${hw},0 Z`;
+    case 'database': {
+      const ry = h * 0.15;
+      return `M0,${ry} A${hw},${ry} 0 0 1 ${w},${ry} V${h-ry} A${hw},${ry} 0 0 1 0,${h-ry} Z M0,${ry} A${hw},${ry} 0 0 0 ${w},${ry}`;
+    }
+    case 'manual_operation': {
+      const sk = w * 0.15;
+      return `M0,0 H${w} L${w-sk},${h} H${sk} Z`;
+    }
+    case 'delay': {
+      return `M0,0 H${w*0.6} A${w*0.4},${hh} 0 0 1 ${w*0.6},${h} H0 Z`;
+    }
+    case 'display': {
+      const lx = w * 0.15;
+      return `M${lx},0 H${w*0.6} A${w*0.4},${hh} 0 0 1 ${w*0.6},${h} H${lx} L0,${hh} Z`;
+    }
+    case 'merge':
+      return `M0,0 H${w} L${hw},${h} Z`;
+    case 'extract':
+      return `M${hw},0 L${w},${h} H0 Z`;
+    case 'ellipse':
+      return `M${hw},0 A${hw},${hh} 0 1 1 ${hw},${h} A${hw},${hh} 0 1 1 ${hw},0 Z`;
+    case 'textbox':
+      return `M0,0 H${w} V${h} H0 Z`;
+    default:
+      return `M0,0 H${w} V${h} H0 Z`;
+  }
+};
+
+FC.getShapePreviewSVG = function(type) {
+  const pw = 44, ph = 32;
+  const path = FC.getShapePath(type, pw, ph);
+  const isText = type === 'textbox';
+  const fillColor = isText ? 'none' : '#dbeafe';
+  const strokeDash = isText ? 'stroke-dasharray="3 2"' : '';
+  return `<svg viewBox="0 0 ${pw} ${ph}" xmlns="http://www.w3.org/2000/svg"><path d="${path}" fill="${fillColor}" stroke="#2563eb" stroke-width="1.5" ${strokeDash}/></svg>`;
+};
+
+// ===== BUILD SHAPE PANEL =====
+FC.buildShapePanel = function() {
+  const flowContainer = document.getElementById('flowchart-shapes');
+  const basicContainer = document.getElementById('basic-shapes');
+  for (const [type, def] of Object.entries(FC.SHAPE_DEFS)) {
+    const div = document.createElement('div');
+    div.className = 'shape-item';
+    div.draggable = true;
+    div.dataset.shapeType = type;
+    div.innerHTML = FC.getShapePreviewSVG(type) + `<span class="shape-label">${def.label}</span>`;
+    div.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', type);
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+    div.addEventListener('dblclick', () => FC.addShapeCenter(type));
+    if (def.cat === 'flow') flowContainer.appendChild(div);
+    else basicContainer.appendChild(div);
+  }
+};
+
+FC.getConnectorPreviewSVG = function(key) {
+  const preset = FC.CONNECTOR_PRESETS[key];
+  const strokeDash = preset.lineStyle === 'dashed' ? 'stroke-dasharray="3 2"' : preset.lineStyle === 'dotted' ? 'stroke-dasharray="1 2"' : '';
+  
+  let pathD = '';
+  if (preset.lineType === 'straight') {
+    pathD = 'M5,25 L35,7';
+  } else if (preset.lineType === 'curve') {
+    pathD = 'M5,25 C15,25 25,7 35,7';
+  } else {
+    pathD = 'M5,25 H22 V7 H35';
+  }
+  
+  let markerStart = '';
+  let markerEnd = '';
+  if (preset.startArrow === 'arrow-filled') markerStart = `marker-start="url(#arrow-filled-preview-${key})"`;
+  if (preset.endArrow === 'arrow-filled') markerEnd = `marker-end="url(#arrow-filled-preview-${key})"`;
+  
+  return `<svg viewBox="0 0 44 32" xmlns="http://www.w3.org/2000/svg" style="pointer-events:none">
+    <defs>
+      <marker id="arrow-filled-preview-${key}" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/>
+      </marker>
+    </defs>
+    <path d="${pathD}" fill="none" stroke="#2563eb" stroke-width="2" ${strokeDash} ${markerStart} ${markerEnd}/>
+  </svg>`;
+};
+
+FC.buildConnectorPanel = function() {
+  const container = document.getElementById('connector-presets');
+  container.innerHTML = '';
+  for (const [key, preset] of Object.entries(FC.CONNECTOR_PRESETS)) {
+    const div = document.createElement('div');
+    div.className = 'shape-item connector-preset-item';
+    if (FC.state.activeConnectorPreset === key && FC.state.tool === 'connector') {
+      div.classList.add('active');
+    }
+    div.dataset.presetKey = key;
+    div.innerHTML = FC.getConnectorPreviewSVG(key) + `<span class="shape-label">${preset.label}</span>`;
+    
+    div.addEventListener('click', () => {
+      FC.state.activeConnectorPreset = key;
+      FC.setTool('connector');
+    });
+    container.appendChild(div);
+  }
+};
+
+// ===== BIND EVENTS =====
+FC.bindEvents = function() {
+  // Canvas events
+  FC.svg.addEventListener('mousedown', FC.onCanvasMouseDown);
+  FC.svg.addEventListener('mousemove', FC.onCanvasMouseMove);
+  FC.svg.addEventListener('mouseup', FC.onCanvasMouseUp);
+  FC.svg.addEventListener('dblclick', FC.onCanvasDblClick);
+  FC.svg.addEventListener('wheel', FC.onCanvasWheel, { passive: false });
+  FC.svg.addEventListener('contextmenu', FC.onCanvasContext);
+
+  // Drag & Drop onto canvas
+  FC.container.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+  FC.container.addEventListener('drop', FC.onCanvasDrop);
+
+  // Keyboard
+  document.addEventListener('keydown', FC.onKeyDown);
+  document.addEventListener('keyup', FC.onKeyUp);
+
+  // Menu bar
+  document.querySelectorAll('.menu-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      FC.toggleMenu(item);
+    });
+    item.addEventListener('mouseenter', () => {
+      if (document.querySelector('.menu-dropdown.show')) FC.toggleMenu(item);
+    });
+  });
+
+  document.addEventListener('click', (e) => {
+    FC.closeAllMenus();
+    FC.closeContextMenu();
+  });
+
+  // Resize
+  window.addEventListener('resize', () => FC.updateViewBox());
+};
+
+// ===== COORDINATE HELPERS =====
+FC.screenToCanvas = function(sx, sy) {
+  const rect = FC.svg.getBoundingClientRect();
+  return {
+    x: (sx - rect.left) / FC.state.zoom + FC.state.panX,
+    y: (sy - rect.top) / FC.state.zoom + FC.state.panY
+  };
+};
+
+FC.canvasToScreen = function(cx, cy) {
+  const rect = FC.svg.getBoundingClientRect();
+  return {
+    x: (cx - FC.state.panX) * FC.state.zoom + rect.left,
+    y: (cy - FC.state.panY) * FC.state.zoom + rect.top
+  };
+};
+
+FC.snapValue = function(v) {
+  if (!FC.state.snapToGrid) return v;
+  return Math.round(v / FC.state.gridSize) * FC.state.gridSize;
+};
+
+// ===== VIEW BOX =====
+FC.updateViewBox = function() {
+  const rect = FC.container.getBoundingClientRect();
+  const vw = rect.width / FC.state.zoom;
+  const vh = rect.height / FC.state.zoom;
+  FC.svg.setAttribute('viewBox', `${FC.state.panX} ${FC.state.panY} ${vw} ${vh}`);
+
+  // Update grid pattern
+  const gs = FC.state.gridSize;
+  const pat = document.getElementById('grid-dots');
+  pat.setAttribute('width', gs);
+  pat.setAttribute('height', gs);
+  pat.querySelector('circle').setAttribute('cx', gs / 2);
+  pat.querySelector('circle').setAttribute('cy', gs / 2);
+
+  const gridBg = document.getElementById('grid-bg');
+  gridBg.style.display = FC.state.gridVisible ? '' : 'none';
+
+  FC.updateMinimap();
+};
+
+// ===== ZOOM =====
+FC.setZoom = function(z, cx, cy) {
+  const old = FC.state.zoom;
+  FC.state.zoom = Math.max(0.25, Math.min(4, z));
+  if (cx !== undefined && cy !== undefined) {
+    const rect = FC.container.getBoundingClientRect();
+    const mx = cx - rect.left;
+    const my = cy - rect.top;
+    FC.state.panX += mx / old - mx / FC.state.zoom;
+    FC.state.panY += my / old - my / FC.state.zoom;
+  }
+  FC.updateViewBox();
+  FC.updateStatusBar();
+};
+
+FC.zoomIn = function() { FC.setZoom(FC.state.zoom * 1.2); };
+FC.zoomOut = function() { FC.setZoom(FC.state.zoom / 1.2); };
+FC.zoomReset = function() {
+  FC.state.panX = 0;
+  FC.state.panY = 0;
+  FC.setZoom(1);
+};
+
+FC.zoomFit = function() {
+  if (FC.state.shapes.length === 0) { FC.zoomReset(); return; }
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  FC.state.shapes.forEach(s => {
+    minX = Math.min(minX, s.x);
+    minY = Math.min(minY, s.y);
+    maxX = Math.max(maxX, s.x + s.w);
+    maxY = Math.max(maxY, s.y + s.h);
+  });
+  const pad = 60;
+  const rect = FC.container.getBoundingClientRect();
+  const cw = maxX - minX + pad * 2;
+  const ch = maxY - minY + pad * 2;
+  const z = Math.min(rect.width / cw, rect.height / ch, 2);
+  FC.state.zoom = z;
+  FC.state.panX = minX - pad - (rect.width / z - cw) / 2;
+  FC.state.panY = minY - pad - (rect.height / z - ch) / 2;
+  FC.updateViewBox();
+  FC.updateStatusBar();
+};
+
+// ===== TOOLS =====
+FC.setTool = function(tool) {
+  FC.state.tool = tool;
+  document.querySelectorAll('.tool-btn[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
+  FC.container.style.cursor = tool === 'pan' ? 'grab' : tool === 'connector' ? 'crosshair' : tool === 'text' ? 'text' : 'default';
+  const names = { select: 'Select', pan: 'Pan', connector: 'Connector', text: 'Text' };
+  document.getElementById('status-tool').textContent = 'Tool: ' + (names[tool] || tool);
+  
+  // Highlight active connector preset in sidebar
+  document.querySelectorAll('.connector-preset-item').forEach(el => {
+    el.classList.toggle('active', tool === 'connector' && el.dataset.presetKey === FC.state.activeConnectorPreset);
+  });
+};
+
+// ===== CANVAS MOUSE EVENTS =====
+FC.onCanvasMouseDown = function(e) {
+  if (e.button === 1 || (e.button === 0 && (FC.state.tool === 'pan' || FC.state.spaceHeld))) {
+    FC.state.isPanning = true;
+    FC.state.panStart = { x: e.clientX, y: e.clientY, px: FC.state.panX, py: FC.state.panY };
+    FC.container.style.cursor = 'grabbing';
+    e.preventDefault();
+    return;
+  }
+
+  if (e.button !== 0) return;
+  const pt = FC.screenToCanvas(e.clientX, e.clientY);
+
+  // Check for resize handle click
+  if (FC.state.selectedIds.length === 1) {
+    const handle = FC.hitTestHandle(pt.x, pt.y);
+    if (handle) {
+      FC.state.isResizing = true;
+      const s = FC.getShape(FC.state.selectedIds[0]);
+      FC.state.resizeHandle = handle;
+      FC.state.resizeStart = { x: pt.x, y: pt.y, sx: s.x, sy: s.y, sw: s.w, sh: s.h };
+      FC.pushUndo();
+      e.preventDefault();
+      return;
+    }
+  }
+
+  // Connector tool - check connection point
+  if (FC.state.tool === 'connector') {
+    const cp = FC.hitTestConnectionPoint(pt.x, pt.y);
+    if (cp) {
+      FC.state.isConnecting = true;
+      FC.state.connectorDraft = {
+        fromId: cp.shapeId,
+        fromSide: cp.side,
+        toId: null,
+        toSide: null,
+        endX: pt.x,
+        endY: pt.y
+      };
+      e.preventDefault();
+      return;
+    }
+    // Also allow starting connector from a shape body
+    const hit = FC.hitTestShape(pt.x, pt.y);
+    if (hit) {
+      const side = FC.nearestSide(hit, pt.x, pt.y);
+      FC.state.isConnecting = true;
+      FC.state.connectorDraft = {
+        fromId: hit.id,
+        fromSide: side,
+        toId: null,
+        toSide: null,
+        endX: pt.x,
+        endY: pt.y
+      };
+      e.preventDefault();
+      return;
+    }
+  }
+
+  // Text tool
+  if (FC.state.tool === 'text') {
+    const hit = FC.hitTestShape(pt.x, pt.y);
+    if (hit) {
+      FC.startTextEdit(hit);
+    } else {
+      FC.addShape('textbox', FC.snapValue(pt.x - 60), FC.snapValue(pt.y - 20), 120, 40);
+    }
+    return;
+  }
+
+  // Select tool
+  if (FC.state.tool === 'select') {
+    // Check connector hit
+    const connHit = FC.hitTestConnector(pt.x, pt.y);
+
+    // Check shape hit
+    const hit = FC.hitTestShape(pt.x, pt.y);
+
+    if (hit) {
+      // Check connection points when in select mode too
+      const cpHit = FC.hitTestConnectionPoint(pt.x, pt.y);
+      if (cpHit) {
+        FC.state.isConnecting = true;
+        FC.state.connectorDraft = {
+          fromId: cpHit.shapeId,
+          fromSide: cpHit.side,
+          toId: null,
+          toSide: null,
+          endX: pt.x,
+          endY: pt.y
+        };
+        e.preventDefault();
+        return;
+      }
+
+      if (e.shiftKey) {
+        const idx = FC.state.selectedIds.indexOf(hit.id);
+        if (idx >= 0) FC.state.selectedIds.splice(idx, 1);
+        else FC.state.selectedIds.push(hit.id);
+      } else if (!FC.state.selectedIds.includes(hit.id)) {
+        FC.state.selectedIds = [hit.id];
+      }
+      FC.state.isDragging = true;
+      FC.state.dragStart = { x: pt.x, y: pt.y };
+      FC.state.dragOffsets = FC.state.selectedIds.map(id => {
+        const s = FC.getShape(id);
+        return s ? { id, dx: pt.x - s.x, dy: pt.y - s.y } : null;
+      }).filter(Boolean);
+      FC.pushUndo();
+      FC.render();
+    } else if (connHit) {
+      FC.state.selectedIds = ['conn_' + connHit.id];
+      FC.render();
+    } else {
+      if (!e.shiftKey) FC.state.selectedIds = [];
+      FC.state.isSelecting = true;
+      FC.state.selectionRect = { x: pt.x, y: pt.y, w: 0, h: 0 };
+      FC.render();
+    }
+  }
+};
+
+FC.onCanvasMouseMove = function(e) {
+  const pt = FC.screenToCanvas(e.clientX, e.clientY);
+  document.getElementById('status-pos').textContent = `X: ${Math.round(pt.x)}  Y: ${Math.round(pt.y)}`;
+
+  if (FC.state.isPanning) {
+    const dx = e.clientX - FC.state.panStart.x;
+    const dy = e.clientY - FC.state.panStart.y;
+    FC.state.panX = FC.state.panStart.px - dx / FC.state.zoom;
+    FC.state.panY = FC.state.panStart.py - dy / FC.state.zoom;
+    FC.updateViewBox();
+    return;
+  }
+
+  if (FC.state.isDragging && FC.state.dragOffsets) {
+    FC.layerGuides.innerHTML = '';
+    FC.state.dragOffsets.forEach(o => {
+      const s = FC.getShape(o.id);
+      if (!s) return;
+      s.x = FC.snapValue(pt.x - o.dx);
+      s.y = FC.snapValue(pt.y - o.dy);
+    });
+    // Smart guides
+    if (FC.state.selectedIds.length === 1) FC.showSmartGuides(FC.getShape(FC.state.selectedIds[0]));
+    FC.render();
+    return;
+  }
+
+  if (FC.state.isResizing) {
+    const rs = FC.state.resizeStart;
+    const s = FC.getShape(FC.state.selectedIds[0]);
+    if (!s) return;
+    const dx = pt.x - rs.x;
+    const dy = pt.y - rs.y;
+    const h = FC.state.resizeHandle;
+    if (h.includes('e')) { s.w = Math.max(30, FC.snapValue(rs.sw + dx)); }
+    if (h.includes('w')) { s.x = FC.snapValue(rs.sx + dx); s.w = Math.max(30, FC.snapValue(rs.sw - dx)); }
+    if (h.includes('s')) { s.h = Math.max(20, FC.snapValue(rs.sh + dy)); }
+    if (h.includes('n')) { s.y = FC.snapValue(rs.sy + dy); s.h = Math.max(20, FC.snapValue(rs.sh - dy)); }
+    if (e.shiftKey) {
+      const ratio = rs.sw / rs.sh;
+      if (h === 'se' || h === 'nw' || h === 'ne' || h === 'sw') {
+        s.h = Math.round(s.w / ratio);
+      }
+    }
+    FC.render();
+    return;
+  }
+
+  if (FC.state.isConnecting) {
+    FC.state.connectorDraft.endX = pt.x;
+    FC.state.connectorDraft.endY = pt.y;
+    const cp = FC.hitTestConnectionPoint(pt.x, pt.y);
+    if (cp && cp.shapeId !== FC.state.connectorDraft.fromId) {
+      FC.state.connectorDraft.toId = cp.shapeId;
+      FC.state.connectorDraft.toSide = cp.side;
+    } else {
+      const hit = FC.hitTestShape(pt.x, pt.y);
+      if (hit && hit.id !== FC.state.connectorDraft.fromId) {
+        FC.state.connectorDraft.toId = hit.id;
+        FC.state.connectorDraft.toSide = FC.nearestSide(hit, pt.x, pt.y);
+      } else {
+        FC.state.connectorDraft.toId = null;
+        FC.state.connectorDraft.toSide = null;
+      }
+    }
+    FC.render();
+    return;
+  }
+
+  if (FC.state.isSelecting) {
+    const r = FC.state.selectionRect;
+    r.w = pt.x - r.x;
+    r.h = pt.y - r.y;
+
+    const rx = Math.min(r.x, r.x + r.w);
+    const ry = Math.min(r.y, r.y + r.h);
+    const rw = Math.abs(r.w);
+    const rh = Math.abs(r.h);
+
+    const selectedShapes = FC.state.shapes
+      .filter(s => s.x < rx + rw && s.x + s.w > rx && s.y < ry + rh && s.y + s.h > ry)
+      .map(s => s.id);
+
+    const selectedConns = FC.state.connectors
+      .filter(c => {
+        const pts = FC.getConnectorPoints(c);
+        if (!pts) return false;
+        return pts.some(([px, py]) => px >= rx && px <= rx + rw && py >= ry && py <= ry + rh);
+      })
+      .map(c => 'conn_' + c.id);
+
+    FC.state.selectedIds = [...selectedShapes, ...selectedConns];
+    FC.render();
+    return;
+  }
+
+  // Show connection points when hovering shapes with connector tool or select tool
+  FC.showConnectionPointsOnHover(pt.x, pt.y);
+};
+
+FC.onCanvasMouseUp = function(e) {
+  if (FC.state.isPanning) {
+    FC.state.isPanning = false;
+    FC.container.style.cursor = FC.state.tool === 'pan' ? 'grab' : 'default';
+    return;
+  }
+
+  if (FC.state.isDragging) {
+    FC.state.isDragging = false;
+    FC.state.dragOffsets = null;
+    FC.layerGuides.innerHTML = '';
+    FC.render();
+    return;
+  }
+
+  if (FC.state.isResizing) {
+    FC.state.isResizing = false;
+    FC.render();
+    return;
+  }
+
+  if (FC.state.isConnecting) {
+    const draft = FC.state.connectorDraft;
+    if (draft.toId) {
+      FC.pushUndo();
+      FC.addConnector(draft.fromId, draft.fromSide, draft.toId, draft.toSide);
+    }
+    FC.state.isConnecting = false;
+    FC.state.connectorDraft = null;
+    FC.render();
+    return;
+  }
+
+  if (FC.state.isSelecting) {
+    FC.state.isSelecting = false;
+    FC.state.selectionRect = null;
+    FC.render();
+    return;
+  }
+};
+
+FC.onCanvasDblClick = function(e) {
+  const pt = FC.screenToCanvas(e.clientX, e.clientY);
+  const hit = FC.hitTestShape(pt.x, pt.y);
+  if (hit) {
+    FC.startTextEdit(hit);
+    return;
+  }
+  // Double-click connector label
+  const connHit = FC.hitTestConnector(pt.x, pt.y);
+  if (connHit) {
+    const label = prompt('Connector label:', connHit.label || '');
+    if (label !== null) {
+      FC.pushUndo();
+      connHit.label = label;
+      FC.render();
+    }
+  }
+};
+
+FC.onCanvasWheel = function(e) {
+  e.preventDefault();
+  if (e.ctrlKey) {
+    const factor = e.deltaY < 0 ? 1.1 : 0.9;
+    FC.setZoom(FC.state.zoom * factor, e.clientX, e.clientY);
+  } else {
+    FC.state.panX += e.deltaX / FC.state.zoom;
+    FC.state.panY += e.deltaY / FC.state.zoom;
+    FC.updateViewBox();
+  }
+};
+
+FC.onCanvasContext = function(e) {
+  e.preventDefault();
+  const pt = FC.screenToCanvas(e.clientX, e.clientY);
+  const hit = FC.hitTestShape(pt.x, pt.y);
+  const connHit = FC.hitTestConnector(pt.x, pt.y);
+
+  let items = [];
+  if (hit) {
+    if (!FC.state.selectedIds.includes(hit.id)) FC.state.selectedIds = [hit.id];
+    items = [
+      { label: 'Cut', shortcut: 'Ctrl+X', action: () => FC.cutSelected() },
+      { label: 'Copy', shortcut: 'Ctrl+C', action: () => FC.copySelected() },
+      { label: 'Paste', shortcut: 'Ctrl+V', action: () => FC.paste() },
+      { label: 'Duplicate', shortcut: 'Ctrl+D', action: () => FC.duplicateSelected() },
+      null,
+      { label: 'Edit Text', action: () => FC.startTextEdit(hit) },
+      null,
+      { label: 'Bring to Front', action: () => FC.bringToFront() },
+      { label: 'Send to Back', action: () => FC.sendToBack() },
+      null,
+      { label: 'Delete', shortcut: 'Del', action: () => FC.deleteSelected() },
+    ];
+  } else if (connHit) {
+    FC.state.selectedIds = ['conn_' + connHit.id];
+    items = [
+      { label: 'Edit Label', action: () => {
+        const l = prompt('Connector label:', connHit.label || '');
+        if (l !== null) { FC.pushUndo(); connHit.label = l; FC.render(); }
+      }},
+      { label: 'Straight Line', action: () => { FC.pushUndo(); connHit.lineType = 'straight'; FC.render(); }},
+      { label: 'Elbow Line', action: () => { FC.pushUndo(); connHit.lineType = 'elbow'; FC.render(); }},
+      { label: 'Curved Line', action: () => { FC.pushUndo(); connHit.lineType = 'curve'; FC.render(); }},
+      null,
+      { label: 'Delete', action: () => { FC.pushUndo(); FC.state.connectors = FC.state.connectors.filter(c => c.id !== connHit.id); FC.state.selectedIds = []; FC.render(); }},
+    ];
+  } else {
+    items = [
+      { label: 'Paste', shortcut: 'Ctrl+V', action: () => FC.paste() },
+      { label: 'Select All', shortcut: 'Ctrl+A', action: () => FC.selectAll() },
+      null,
+      { label: 'Zoom In', action: () => FC.zoomIn() },
+      { label: 'Zoom Out', action: () => FC.zoomOut() },
+      { label: 'Zoom 100%', action: () => FC.zoomReset() },
+      null,
+      { label: FC.state.gridVisible ? 'Hide Grid' : 'Show Grid', action: () => FC.toggleGrid() },
+    ];
+  }
+
+  FC.showContextMenu(e.clientX, e.clientY, items);
+  FC.render();
+};
+
+FC.onCanvasDrop = function(e) {
+  e.preventDefault();
+  const type = e.dataTransfer.getData('text/plain');
+  if (!FC.SHAPE_DEFS[type]) return;
+  const pt = FC.screenToCanvas(e.clientX, e.clientY);
+  const def = FC.SHAPE_DEFS[type];
+  FC.addShape(type, FC.snapValue(pt.x - def.w / 2), FC.snapValue(pt.y - def.h / 2));
+};
+
+// ===== KEYBOARD =====
+FC.onKeyDown = function(e) {
+  // Space for pan
+  if (e.code === 'Space' && !e.repeat && !FC.isTextEditing()) {
+    FC.state.spaceHeld = true;
+    FC.container.style.cursor = 'grab';
+    e.preventDefault();
+    return;
+  }
+
+  if (FC.isTextEditing()) return;
+
+  const ctrl = e.ctrlKey || e.metaKey;
+
+  if (ctrl && e.key === 'z') { e.preventDefault(); FC.undo(); return; }
+  if (ctrl && e.key === 'y') { e.preventDefault(); FC.redo(); return; }
+  if (ctrl && e.key === 'c') { e.preventDefault(); FC.copySelected(); return; }
+  if (ctrl && e.key === 'v') { e.preventDefault(); FC.paste(); return; }
+  if (ctrl && e.key === 'x') { e.preventDefault(); FC.cutSelected(); return; }
+  if (ctrl && e.key === 'd') { e.preventDefault(); FC.duplicateSelected(); return; }
+  if (ctrl && e.key === 'a') { e.preventDefault(); FC.selectAll(); return; }
+  if (ctrl && e.key === 's') { e.preventDefault(); FC.saveFile(); return; }
+  if (ctrl && e.key === 'e') { e.preventDefault(); FC.exportPNG(); return; }
+  if (ctrl && e.key === 'o') { e.preventDefault(); FC.openFile(); return; }
+  if (ctrl && e.key === 'n') { e.preventDefault(); FC.newFile(); return; }
+  if (ctrl && e.key === 'h') { e.preventDefault(); FC.searchReplaceDialog(); return; }
+  if (ctrl && (e.key === '=' || e.key === '+')) { e.preventDefault(); FC.zoomIn(); return; }
+  if (ctrl && e.key === '-') { e.preventDefault(); FC.zoomOut(); return; }
+  if (ctrl && e.key === '0') { e.preventDefault(); FC.zoomReset(); return; }
+
+  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); FC.deleteSelected(); return; }
+
+  // Arrow keys
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && FC.state.selectedIds.length > 0) {
+    e.preventDefault();
+    FC.pushUndo();
+    const d = e.shiftKey ? 10 : 1;
+    FC.state.selectedIds.forEach(id => {
+      if (id.startsWith('conn_')) return;
+      const s = FC.getShape(id);
+      if (!s) return;
+      if (e.key === 'ArrowLeft') s.x -= d;
+      if (e.key === 'ArrowRight') s.x += d;
+      if (e.key === 'ArrowUp') s.y -= d;
+      if (e.key === 'ArrowDown') s.y += d;
+    });
+    FC.render();
+    return;
+  }
+
+  // Tool shortcuts
+  if (!ctrl) {
+    if (e.key === 'v' || e.key === 'V') { FC.setTool('select'); return; }
+    if (e.key === 'h' || e.key === 'H') { FC.setTool('pan'); return; }
+    if (e.key === 'l' || e.key === 'L') { FC.setTool('connector'); return; }
+    if (e.key === 't' || e.key === 'T') { FC.setTool('text'); return; }
+    if (e.key === 'Escape') {
+      FC.state.selectedIds = [];
+      FC.state.isConnecting = false;
+      FC.state.connectorDraft = null;
+      FC.render();
+      return;
+    }
+  }
+};
+
+FC.onKeyUp = function(e) {
+  if (e.code === 'Space') {
+    FC.state.spaceHeld = false;
+    FC.container.style.cursor = FC.state.tool === 'pan' ? 'grab' : 'default';
+  }
+};
+
+FC.isTextEditing = function() {
+  const el = document.activeElement;
+  return el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT' || el.isContentEditable);
+};
+
+// ===== HIT TESTING =====
+FC.hitTestShape = function(x, y) {
+  for (let i = FC.state.shapes.length - 1; i >= 0; i--) {
+    const s = FC.state.shapes[i];
+    if (x >= s.x && x <= s.x + s.w && y >= s.y && y <= s.y + s.h) return s;
+  }
+  return null;
+};
+
+FC.hitTestHandle = function(x, y) {
+  if (FC.state.selectedIds.length !== 1) return null;
+  const s = FC.getShape(FC.state.selectedIds[0]);
+  if (!s) return null;
+  const handles = FC.getResizeHandles(s);
+  for (const [dir, hx, hy] of handles) {
+    if (Math.abs(x - hx) < 6 && Math.abs(y - hy) < 6) return dir;
+  }
+  return null;
+};
+
+FC.hitTestConnectionPoint = function(x, y) {
+  for (const s of FC.state.shapes) {
+    const pts = FC.getConnectionPoints(s);
+    for (const [side, px, py] of pts) {
+      if (Math.abs(x - px) < 8 && Math.abs(y - py) < 8) {
+        return { shapeId: s.id, side };
+      }
+    }
+  }
+  return null;
+};
+
+FC.hitTestConnector = function(x, y) {
+  for (const c of FC.state.connectors) {
+    const pts = FC.getConnectorPoints(c);
+    if (!pts) continue;
+    for (let i = 0; i < pts.length - 1; i++) {
+      if (FC.distToSegment(x, y, pts[i][0], pts[i][1], pts[i+1][0], pts[i+1][1]) < 6) return c;
+    }
+  }
+  return null;
+};
+
+FC.distToSegment = function(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const len2 = dx * dx + dy * dy;
+  if (len2 === 0) return Math.hypot(px - ax, py - ay);
+  let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+};
+
+FC.nearestSide = function(shape, x, y) {
+  const cx = shape.x + shape.w / 2;
+  const cy = shape.y + shape.h / 2;
+  const dx = (x - cx) / (shape.w / 2);
+  const dy = (y - cy) / (shape.h / 2);
+  if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? 'right' : 'left';
+  return dy > 0 ? 'bottom' : 'top';
+};
+
+FC.getConnectionPoints = function(s) {
+  return [
+    ['top', s.x + s.w / 2, s.y],
+    ['right', s.x + s.w, s.y + s.h / 2],
+    ['bottom', s.x + s.w / 2, s.y + s.h],
+    ['left', s.x, s.y + s.h / 2],
+  ];
+};
+
+FC.getResizeHandles = function(s) {
+  return [
+    ['nw', s.x, s.y],
+    ['n', s.x + s.w / 2, s.y],
+    ['ne', s.x + s.w, s.y],
+    ['e', s.x + s.w, s.y + s.h / 2],
+    ['se', s.x + s.w, s.y + s.h],
+    ['s', s.x + s.w / 2, s.y + s.h],
+    ['sw', s.x, s.y + s.h],
+    ['w', s.x, s.y + s.h / 2],
+  ];
+};
+
+FC.getConnectionPointPos = function(s, side) {
+  switch (side) {
+    case 'top':    return [s.x + s.w / 2, s.y];
+    case 'right':  return [s.x + s.w, s.y + s.h / 2];
+    case 'bottom': return [s.x + s.w / 2, s.y + s.h];
+    case 'left':   return [s.x, s.y + s.h / 2];
+    default:       return [s.x + s.w / 2, s.y + s.h / 2];
+  }
+};
+
+FC.showConnectionPointsOnHover = function(x, y) {
+  // Handled via CSS :hover on .connection-point
+};
+
+// ===== SHAPE MANAGEMENT =====
+FC.getShape = function(id) { return FC.state.shapes.find(s => s.id === id); };
+FC.getConnector = function(id) { return FC.state.connectors.find(c => c.id === id); };
+
+FC.addShape = function(type, x, y, w, h) {
+  const def = FC.SHAPE_DEFS[type] || { w: 140, h: 60 };
+  const theme = FC.THEMES[FC.state.theme];
+  const shape = {
+    id: 'shape_' + FC.state.nextId++,
+    type,
+    x: x || 100,
+    y: y || 100,
+    w: w || def.w,
+    h: h || def.h,
+    text: '',
+    fill: type === 'textbox' ? 'transparent' : theme.fill,
+    stroke: type === 'textbox' ? 'transparent' : theme.stroke,
+    strokeWidth: type === 'textbox' ? 0 : 2,
+    strokeStyle: 'solid',
+    cornerRadius: 0,
+    textColor: theme.text,
+    fontSize: 13,
+    fontFamily: "'Segoe UI', sans-serif",
+    fontBold: false,
+    fontItalic: false,
+    textAlign: 'center',
+    shadow: false,
+    opacity: 1,
+  };
+  FC.pushUndo();
+  FC.state.shapes.push(shape);
+  FC.state.selectedIds = [shape.id];
+  FC.render();
+  FC.updateStatusBar();
+  return shape;
+};
+
+FC.addShapeCenter = function(type) {
+  const rect = FC.container.getBoundingClientRect();
+  const cx = FC.state.panX + rect.width / 2 / FC.state.zoom;
+  const cy = FC.state.panY + rect.height / 2 / FC.state.zoom;
+  const def = FC.SHAPE_DEFS[type] || { w: 140, h: 60 };
+  FC.addShape(type, FC.snapValue(cx - def.w / 2), FC.snapValue(cy - def.h / 2));
+  FC.closeAllMenus();
+};
+
+FC.addConnector = function(fromId, fromSide, toId, toSide) {
+  const preset = FC.CONNECTOR_PRESETS[FC.state.activeConnectorPreset] || {
+    lineType: 'elbow',
+    lineStyle: 'solid',
+    startArrow: 'none',
+    endArrow: 'arrow-filled'
+  };
+  const conn = {
+    id: 'conn_' + FC.state.nextId++,
+    fromId, fromSide, toId, toSide,
+    lineType: preset.lineType,
+    lineStyle: preset.lineStyle,
+    color: FC.THEMES[FC.state.theme].connStroke,
+    width: 2,
+    startArrow: preset.startArrow,
+    endArrow: preset.endArrow,
+    label: '',
+  };
+  FC.state.connectors.push(conn);
+  FC.render();
+  FC.updateStatusBar();
+  return conn;
+};
+
+FC.deleteSelected = function() {
+  if (FC.state.selectedIds.length === 0) return;
+  FC.pushUndo();
+  const shapeIds = FC.state.selectedIds.filter(id => !id.startsWith('conn_'));
+  const connIds = FC.state.selectedIds.filter(id => id.startsWith('conn_')).map(id => id);
+
+  // Delete shapes and their connectors
+  FC.state.shapes = FC.state.shapes.filter(s => !shapeIds.includes(s.id));
+  FC.state.connectors = FC.state.connectors.filter(c =>
+    !connIds.includes('conn_' + c.id) && !connIds.includes(c.id) &&
+    !shapeIds.includes(c.fromId) && !shapeIds.includes(c.toId)
+  );
+
+  FC.state.selectedIds = [];
+  FC.render();
+  FC.updateStatusBar();
+};
+
+FC.copySelected = function() {
+  const shapeIds = FC.state.selectedIds.filter(id => !id.startsWith('conn_'));
+  if (shapeIds.length === 0) return;
+  const shapes = shapeIds.map(id => FC.getShape(id)).filter(Boolean);
+  const conns = FC.state.connectors.filter(c => shapeIds.includes(c.fromId) && shapeIds.includes(c.toId));
+  FC.state.clipboard = { shapes: JSON.parse(JSON.stringify(shapes)), connectors: JSON.parse(JSON.stringify(conns)) };
+};
+
+FC.cutSelected = function() {
+  FC.copySelected();
+  FC.deleteSelected();
+};
+
+FC.paste = function() {
+  if (!FC.state.clipboard) return;
+  FC.pushUndo();
+  const idMap = {};
+  const newShapes = [];
+  FC.state.clipboard.shapes.forEach(s => {
+    const newId = 'shape_' + FC.state.nextId++;
+    idMap[s.id] = newId;
+    const ns = { ...JSON.parse(JSON.stringify(s)), id: newId, x: s.x + 20, y: s.y + 20 };
+    FC.state.shapes.push(ns);
+    newShapes.push(ns);
+  });
+  FC.state.clipboard.connectors.forEach(c => {
+    if (idMap[c.fromId] && idMap[c.toId]) {
+      const nc = { ...JSON.parse(JSON.stringify(c)), id: 'conn_' + FC.state.nextId++, fromId: idMap[c.fromId], toId: idMap[c.toId] };
+      FC.state.connectors.push(nc);
+    }
+  });
+  FC.state.selectedIds = newShapes.map(s => s.id);
+  FC.render();
+  FC.updateStatusBar();
+};
+
+FC.duplicateSelected = function() {
+  FC.copySelected();
+  FC.paste();
+};
+
+FC.selectAll = function() {
+  FC.state.selectedIds = FC.state.shapes.map(s => s.id);
+  FC.render();
+};
+
+FC.bringToFront = function() {
+  const ids = FC.state.selectedIds.filter(id => !id.startsWith('conn_'));
+  if (ids.length === 0) return;
+  FC.pushUndo();
+  const moved = FC.state.shapes.filter(s => ids.includes(s.id));
+  FC.state.shapes = FC.state.shapes.filter(s => !ids.includes(s.id));
+  FC.state.shapes.push(...moved);
+  FC.render();
+};
+
+FC.sendToBack = function() {
+  const ids = FC.state.selectedIds.filter(id => !id.startsWith('conn_'));
+  if (ids.length === 0) return;
+  FC.pushUndo();
+  const moved = FC.state.shapes.filter(s => ids.includes(s.id));
+  FC.state.shapes = FC.state.shapes.filter(s => !ids.includes(s.id));
+  FC.state.shapes.unshift(...moved);
+  FC.render();
+};
+
+// ===== ALIGNMENT & DISTRIBUTION =====
+FC.alignSelected = function(dir) {
+  const ids = FC.state.selectedIds.filter(id => !id.startsWith('conn_'));
+  if (ids.length < 2) return;
+  FC.pushUndo();
+  const shapes = ids.map(id => FC.getShape(id)).filter(Boolean);
+  let ref;
+  switch (dir) {
+    case 'left':    ref = Math.min(...shapes.map(s => s.x)); shapes.forEach(s => s.x = ref); break;
+    case 'center':  ref = shapes.reduce((a, s) => a + s.x + s.w / 2, 0) / shapes.length; shapes.forEach(s => s.x = ref - s.w / 2); break;
+    case 'right':   ref = Math.max(...shapes.map(s => s.x + s.w)); shapes.forEach(s => s.x = ref - s.w); break;
+    case 'top':     ref = Math.min(...shapes.map(s => s.y)); shapes.forEach(s => s.y = ref); break;
+    case 'middle':  ref = shapes.reduce((a, s) => a + s.y + s.h / 2, 0) / shapes.length; shapes.forEach(s => s.y = ref - s.h / 2); break;
+    case 'bottom':  ref = Math.max(...shapes.map(s => s.y + s.h)); shapes.forEach(s => s.y = ref - s.h); break;
+  }
+  FC.render();
+};
+
+FC.distribute = function(dir) {
+  const ids = FC.state.selectedIds.filter(id => !id.startsWith('conn_'));
+  if (ids.length < 3) return;
+  FC.pushUndo();
+  const shapes = ids.map(id => FC.getShape(id)).filter(Boolean);
+  if (dir === 'horizontal') {
+    shapes.sort((a, b) => a.x - b.x);
+    const minX = shapes[0].x;
+    const maxX = shapes[shapes.length - 1].x + shapes[shapes.length - 1].w;
+    const totalW = shapes.reduce((a, s) => a + s.w, 0);
+    const gap = (maxX - minX - totalW) / (shapes.length - 1);
+    let cx = minX;
+    shapes.forEach(s => { s.x = cx; cx += s.w + gap; });
+  } else {
+    shapes.sort((a, b) => a.y - b.y);
+    const minY = shapes[0].y;
+    const maxY = shapes[shapes.length - 1].y + shapes[shapes.length - 1].h;
+    const totalH = shapes.reduce((a, s) => a + s.h, 0);
+    const gap = (maxY - minY - totalH) / (shapes.length - 1);
+    let cy = minY;
+    shapes.forEach(s => { s.y = cy; cy += s.h + gap; });
+  }
+  FC.render();
+};
+
+// ===== SMART GUIDES =====
+FC.showSmartGuides = function(s) {
+  FC.layerGuides.innerHTML = '';
+  const cx = s.x + s.w / 2;
+  const cy = s.y + s.h / 2;
+  const threshold = 5;
+
+  FC.state.shapes.forEach(other => {
+    if (other.id === s.id) return;
+    const ocx = other.x + other.w / 2;
+    const ocy = other.y + other.h / 2;
+
+    // Vertical center alignment
+    if (Math.abs(cx - ocx) < threshold) {
+      s.x = ocx - s.w / 2;
+      const gy1 = Math.min(s.y, other.y);
+      const gy2 = Math.max(s.y + s.h, other.y + other.h);
+      FC.drawGuide(ocx, gy1, ocx, gy2);
+    }
+    // Horizontal center alignment
+    if (Math.abs(cy - ocy) < threshold) {
+      s.y = ocy - s.h / 2;
+      const gx1 = Math.min(s.x, other.x);
+      const gx2 = Math.max(s.x + s.w, other.x + other.w);
+      FC.drawGuide(gx1, ocy, gx2, ocy);
+    }
+    // Left alignment
+    if (Math.abs(s.x - other.x) < threshold) {
+      s.x = other.x;
+      FC.drawGuide(other.x, Math.min(s.y, other.y), other.x, Math.max(s.y + s.h, other.y + other.h));
+    }
+    // Right alignment
+    if (Math.abs(s.x + s.w - other.x - other.w) < threshold) {
+      s.x = other.x + other.w - s.w;
+      FC.drawGuide(other.x + other.w, Math.min(s.y, other.y), other.x + other.w, Math.max(s.y + s.h, other.y + other.h));
+    }
+    // Top alignment
+    if (Math.abs(s.y - other.y) < threshold) {
+      s.y = other.y;
+      FC.drawGuide(Math.min(s.x, other.x), other.y, Math.max(s.x + s.w, other.x + other.w), other.y);
+    }
+    // Bottom alignment
+    if (Math.abs(s.y + s.h - other.y - other.h) < threshold) {
+      s.y = other.y + other.h - s.h;
+      FC.drawGuide(Math.min(s.x, other.x), other.y + other.h, Math.max(s.x + s.w, other.x + other.w), other.y + other.h);
+    }
+  });
+};
+
+FC.drawGuide = function(x1, y1, x2, y2) {
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+  line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+  line.setAttribute('class', 'smart-guide');
+  FC.layerGuides.appendChild(line);
+};
+
+// ===== CONNECTOR PATH =====
+FC.getConnectorPoints = function(c) {
+  const fromShape = FC.getShape(c.fromId);
+  const toShape = FC.getShape(c.toId);
+  if (!fromShape || !toShape) return null;
+  const [fx, fy] = FC.getConnectionPointPos(fromShape, c.fromSide);
+  const [tx, ty] = FC.getConnectionPointPos(toShape, c.toSide);
+  return FC.calcConnectorPath(fx, fy, c.fromSide, tx, ty, c.toSide, c.lineType);
+};
+
+FC.calcConnectorPath = function(fx, fy, fSide, tx, ty, tSide, lineType) {
+  if (lineType === 'straight') {
+    return [[fx, fy], [tx, ty]];
+  }
+  if (lineType === 'curve') {
+    return [[fx, fy], [tx, ty]]; // SVG path will use cubic bezier
+  }
+  // Elbow (orthogonal)
+  const points = [[fx, fy]];
+  const gap = 20;
+
+  const fDir = { top: [0, -1], bottom: [0, 1], left: [-1, 0], right: [1, 0] }[fSide];
+  const tDir = { top: [0, -1], bottom: [0, 1], left: [-1, 0], right: [1, 0] }[tSide];
+
+  const mx = (fx + tx) / 2;
+  const my = (fy + ty) / 2;
+
+  if (fSide === 'bottom' && tSide === 'top') {
+    if (fy + gap < ty - gap) {
+      points.push([fx, my], [tx, my]);
+    } else {
+      const sx = fx < tx ? Math.min(fx, tx) - gap : Math.max(fx, tx) + gap;
+      points.push([fx, fy + gap], [sx, fy + gap], [sx, ty - gap], [tx, ty - gap]);
+    }
+  } else if (fSide === 'top' && tSide === 'bottom') {
+    if (ty + gap < fy - gap) {
+      points.push([fx, my], [tx, my]);
+    } else {
+      const sx = fx < tx ? Math.min(fx, tx) - gap : Math.max(fx, tx) + gap;
+      points.push([fx, fy - gap], [sx, fy - gap], [sx, ty + gap], [tx, ty + gap]);
+    }
+  } else if (fSide === 'right' && tSide === 'left') {
+    if (fx + gap < tx - gap) {
+      points.push([mx, fy], [mx, ty]);
+    } else {
+      const sy = fy < ty ? Math.min(fy, ty) - gap : Math.max(fy, ty) + gap;
+      points.push([fx + gap, fy], [fx + gap, sy], [tx - gap, sy], [tx - gap, ty]);
+    }
+  } else if (fSide === 'left' && tSide === 'right') {
+    if (tx + gap < fx - gap) {
+      points.push([mx, fy], [mx, ty]);
+    } else {
+      const sy = fy < ty ? Math.min(fy, ty) - gap : Math.max(fy, ty) + gap;
+      points.push([fx - gap, fy], [fx - gap, sy], [tx + gap, sy], [tx + gap, ty]);
+    }
+  } else if ((fSide === 'bottom' || fSide === 'top') && (tSide === 'left' || tSide === 'right')) {
+    const ey = fSide === 'bottom' ? fy + gap : fy - gap;
+    const ex = tSide === 'right' ? tx + gap : tx - gap;
+    if ((fSide === 'bottom' && ey > ty) || (fSide === 'top' && ey < ty)) {
+      points.push([fx, ey], [tx, ey]);
+    } else {
+      points.push([fx, ty], [tx, ty]);
+    }
+  } else if ((fSide === 'left' || fSide === 'right') && (tSide === 'top' || tSide === 'bottom')) {
+    const ex = fSide === 'right' ? fx + gap : fx - gap;
+    if ((fSide === 'right' && ex > tx) || (fSide === 'left' && ex < tx)) {
+      points.push([ex, fy], [ex, ty]);
+    } else {
+      points.push([tx, fy]);
+    }
+  } else {
+    // Same side or other cases
+    const off = gap;
+    if (fSide === 'top' || fSide === 'bottom') {
+      const dy = fSide === 'top' ? -off : off;
+      points.push([fx, fy + dy], [tx, fy + dy]);
+    } else {
+      const dx = fSide === 'left' ? -off : off;
+      points.push([fx + dx, fy], [fx + dx, ty]);
+    }
+  }
+  points.push([tx, ty]);
+  return points;
+};
+
+FC.pointsToSVGPath = function(points, lineType) {
+  if (!points || points.length < 2) return '';
+  if (lineType === 'curve') {
+    const [fx, fy] = points[0];
+    const [tx, ty] = points[points.length - 1];
+    const mx = (fx + tx) / 2;
+    const my = (fy + ty) / 2;
+    // Smooth bezier
+    const dx = tx - fx;
+    const dy = ty - fy;
+    let c1x, c1y, c2x, c2y;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      c1x = fx + dx * 0.5; c1y = fy;
+      c2x = tx - dx * 0.5; c2y = ty;
+    } else {
+      c1x = fx; c1y = fy + dy * 0.5;
+      c2x = tx; c2y = ty - dy * 0.5;
+    }
+    return `M${fx},${fy} C${c1x},${c1y} ${c2x},${c2y} ${tx},${ty}`;
+  }
+  if (lineType === 'rounded' && points.length > 2) {
+    let d = `M${points[0][0]},${points[0][1]}`;
+    const r = 8; // Corner radius
+    for (let i = 1; i < points.length - 1; i++) {
+      const pPrev = points[i-1];
+      const pCurr = points[i];
+      const pNext = points[i+1];
+      
+      const d1x = pCurr[0] - pPrev[0];
+      const d1y = pCurr[1] - pPrev[1];
+      const d2x = pNext[0] - pCurr[0];
+      const d2y = pNext[1] - pCurr[1];
+      
+      const len1 = Math.hypot(d1x, d1y);
+      const len2 = Math.hypot(d2x, d2y);
+      
+      const actualR = Math.min(r, len1 / 2, len2 / 2);
+      
+      if (actualR > 0) {
+        const p1x = pCurr[0] - (d1x / len1) * actualR;
+        const p1y = pCurr[1] - (d1y / len1) * actualR;
+        const p2x = pCurr[0] + (d2x / len2) * actualR;
+        const p2y = pCurr[1] + (d2y / len2) * actualR;
+        d += ` L${p1x},${p1y} Q${pCurr[0]},${pCurr[1]} ${p2x},${p2y}`;
+      } else {
+        d += ` L${pCurr[0]},${pCurr[1]}`;
+      }
+    }
+    d += ` L${points[points.length - 1][0]},${points[points.length - 1][1]}`;
+    return d;
+  }
+  let d = `M${points[0][0]},${points[0][1]}`;
+  for (let i = 1; i < points.length; i++) {
+    d += ` L${points[i][0]},${points[i][1]}`;
+  }
+  return d;
+};
+
+// ===== RENDER =====
+FC.render = function() {
+  FC.renderShapes();
+  FC.renderConnectors();
+  FC.renderHandles();
+  FC.renderSelection();
+  FC.renderDraftConnector();
+  FC.updatePropsPanel();
+  FC.updateMinimap();
+};
+
+FC.renderShapes = function() {
+  FC.layerShapes.innerHTML = '';
+  FC.state.shapes.forEach(s => {
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', 'shape-node' + (FC.state.selectedIds.includes(s.id) ? ' selected' : ''));
+    g.setAttribute('transform', `translate(${s.x}, ${s.y})`);
+    g.dataset.shapeId = s.id;
+    g.style.opacity = s.opacity;
+
+    if (s.shadow) g.setAttribute('filter', 'url(#shadow-filter)');
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', FC.getShapePath(s.type, s.w, s.h));
+    path.setAttribute('fill', s.fill === 'transparent' ? 'rgba(0,0,0,0)' : s.fill);
+    path.setAttribute('stroke', s.stroke === 'transparent' ? 'none' : s.stroke);
+    path.setAttribute('stroke-width', s.strokeWidth);
+    path.setAttribute('class', 'shape-outline');
+    if (s.strokeStyle === 'dashed') path.setAttribute('stroke-dasharray', '8 4');
+    else if (s.strokeStyle === 'dotted') path.setAttribute('stroke-dasharray', '2 3');
+    if (s.cornerRadius > 0 && (s.type === 'process' || s.type === 'rectangle')) {
+      // Use rounded rect instead
+      path.setAttribute('d', FC.getRoundedRectPath(s.w, s.h, s.cornerRadius));
+    }
+    g.appendChild(path);
+
+    // Connection points
+    const cpData = FC.getConnectionPoints({ ...s, x: 0, y: 0, w: s.w, h: s.h });
+    cpData.forEach(([side, cx, cy]) => {
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', cx);
+      circle.setAttribute('cy', cy);
+      circle.setAttribute('class', 'connection-point');
+      circle.setAttribute('r', 5);
+      circle.dataset.side = side;
+      circle.dataset.shapeId = s.id;
+      g.appendChild(circle);
+    });
+
+    // Text
+    if (s.text) {
+      const fo = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+      const pad = 6;
+      fo.setAttribute('x', pad);
+      fo.setAttribute('y', pad);
+      fo.setAttribute('width', s.w - pad * 2);
+      fo.setAttribute('height', s.h - pad * 2);
+
+      const div = document.createElement('div');
+      div.style.cssText = `
+        width: 100%; height: 100%; display: flex; align-items: center; justify-content: ${s.textAlign === 'left' ? 'flex-start' : s.textAlign === 'right' ? 'flex-end' : 'center'};
+        text-align: ${s.textAlign}; color: ${s.textColor}; font-size: ${s.fontSize}px;
+        font-weight: ${s.fontBold ? 'bold' : 'normal'}; font-style: ${s.fontItalic ? 'italic' : 'normal'};
+        font-family: ${s.fontFamily || 'var(--font)'}; overflow: hidden; word-wrap: break-word; line-height: 1.3;
+        pointer-events: none; user-select: none; padding: 2px;
+      `;
+      div.textContent = s.text;
+      fo.appendChild(div);
+      g.appendChild(fo);
+    }
+
+    FC.layerShapes.appendChild(g);
+  });
+};
+
+FC.getRoundedRectPath = function(w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  return `M${r},0 H${w - r} A${r},${r} 0 0 1 ${w},${r} V${h - r} A${r},${r} 0 0 1 ${w - r},${h} H${r} A${r},${r} 0 0 1 0,${h - r} V${r} A${r},${r} 0 0 1 ${r},0 Z`;
+};
+
+FC.renderConnectors = function() {
+  FC.layerConnectors.innerHTML = '';
+  FC.state.connectors.forEach(c => {
+    const points = FC.getConnectorPoints(c);
+    if (!points) return;
+
+    const pathD = FC.pointsToSVGPath(points, c.lineType);
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', pathD);
+    path.setAttribute('class', 'connector-line' + (FC.state.selectedIds.includes('conn_' + c.id) || FC.state.selectedIds.includes(c.id) ? ' selected' : ''));
+    path.setAttribute('stroke', c.color);
+    path.setAttribute('stroke-width', c.width);
+    path.setAttribute('fill', 'none');
+    if (c.lineStyle === 'dashed') path.setAttribute('stroke-dasharray', '8 4');
+    else if (c.lineStyle === 'dotted') path.setAttribute('stroke-dasharray', '3 3');
+
+    if (c.endArrow && c.endArrow !== 'none') path.setAttribute('marker-end', `url(#${c.endArrow})`);
+    if (c.startArrow && c.startArrow !== 'none') path.setAttribute('marker-start', `url(#${c.startArrow})`);
+
+    path.dataset.connId = c.id;
+    FC.layerConnectors.appendChild(path);
+
+    // Label
+    if (c.label) {
+      const midIdx = Math.floor(points.length / 2);
+      const p1 = points[Math.max(0, midIdx - 1)];
+      const p2 = points[Math.min(points.length - 1, midIdx)];
+      const lx = (p1[0] + p2[0]) / 2;
+      const ly = (p1[1] + p2[1]) / 2;
+
+      const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      const textLen = c.label.length * 7 + 10;
+      bg.setAttribute('x', lx - textLen / 2);
+      bg.setAttribute('y', ly - 10);
+      bg.setAttribute('width', textLen);
+      bg.setAttribute('height', 20);
+      bg.setAttribute('fill', 'white');
+      bg.setAttribute('rx', 3);
+      bg.setAttribute('stroke', '#e2e8f0');
+      bg.setAttribute('stroke-width', 1);
+      FC.layerConnectors.appendChild(bg);
+
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', lx);
+      text.setAttribute('y', ly + 4);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('fill', c.color);
+      text.setAttribute('font-size', '12');
+      text.setAttribute('font-family', 'Segoe UI, Inter, sans-serif');
+      text.textContent = c.label;
+      FC.layerConnectors.appendChild(text);
+    }
+  });
+};
+
+FC.renderHandles = function() {
+  FC.layerHandles.innerHTML = '';
+  if (FC.state.selectedIds.length === 0) return;
+
+  const shapeIds = FC.state.selectedIds.filter(id => !id.startsWith('conn_'));
+
+  shapeIds.forEach(id => {
+    const s = FC.getShape(id);
+    if (!s) return;
+
+    // Draw selection outline around each selected shape
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', s.x - 3);
+    rect.setAttribute('y', s.y - 3);
+    rect.setAttribute('width', s.w + 6);
+    rect.setAttribute('height', s.h + 6);
+    rect.setAttribute('fill', 'none');
+    rect.setAttribute('stroke', '#2563eb');
+    rect.setAttribute('stroke-width', '1.5');
+    rect.setAttribute('stroke-dasharray', '3 3');
+    rect.setAttribute('vector-effect', 'non-scaling-stroke');
+    rect.setAttribute('pointer-events', 'none');
+    FC.layerHandles.appendChild(rect);
+  });
+
+  // If only one shape is selected, also draw the resize handles
+  if (shapeIds.length === 1) {
+    const s = FC.getShape(shapeIds[0]);
+    if (s) {
+      FC.getResizeHandles(s).forEach(([dir, hx, hy]) => {
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', hx);
+        circle.setAttribute('cy', hy);
+        circle.setAttribute('class', `resize-handle ${dir}`);
+        circle.setAttribute('r', 4);
+        circle.dataset.handle = dir;
+        FC.layerHandles.appendChild(circle);
+      });
+    }
+  }
+};
+
+FC.renderSelection = function() {
+  FC.layerSelection.innerHTML = '';
+  if (FC.state.isSelecting && FC.state.selectionRect) {
+    const r = FC.state.selectionRect;
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', Math.min(r.x, r.x + r.w));
+    rect.setAttribute('y', Math.min(r.y, r.y + r.h));
+    rect.setAttribute('width', Math.abs(r.w));
+    rect.setAttribute('height', Math.abs(r.h));
+    rect.setAttribute('class', 'selection-rect');
+    FC.layerSelection.appendChild(rect);
+  }
+};
+
+FC.renderDraftConnector = function() {
+  if (!FC.state.isConnecting || !FC.state.connectorDraft) return;
+  const draft = FC.state.connectorDraft;
+  const fromShape = FC.getShape(draft.fromId);
+  if (!fromShape) return;
+  const [fx, fy] = FC.getConnectionPointPos(fromShape, draft.fromSide);
+
+  let pathD;
+  if (draft.toId) {
+    const toShape = FC.getShape(draft.toId);
+    if (toShape) {
+      const [tx, ty] = FC.getConnectionPointPos(toShape, draft.toSide);
+      const pts = FC.calcConnectorPath(fx, fy, draft.fromSide, tx, ty, draft.toSide, 'elbow');
+      pathD = FC.pointsToSVGPath(pts, 'elbow');
+    }
+  }
+  if (!pathD) {
+    pathD = `M${fx},${fy} L${draft.endX},${draft.endY}`;
+  }
+
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', pathD);
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', draft.toId ? '#22c55e' : '#94a3b8');
+  path.setAttribute('stroke-width', 2);
+  path.setAttribute('stroke-dasharray', '6 3');
+  path.setAttribute('marker-end', 'url(#arrow-filled)');
+  FC.layerConnectors.appendChild(path);
+};
+
+// ===== TEXT EDITING =====
+FC.startTextEdit = function(shape) {
+  FC.finishTextEdit();
+  const screenPos = FC.canvasToScreen(shape.x, shape.y);
+  const rect = FC.svg.getBoundingClientRect();
+
+  const container = document.createElement('div');
+  container.className = 'text-editor-container';
+  container.style.left = ((shape.x - FC.state.panX) * FC.state.zoom + rect.left) + 'px';
+  container.style.top = ((shape.y - FC.state.panY) * FC.state.zoom + rect.top) + 'px';
+
+  const ta = document.createElement('textarea');
+  ta.value = shape.text || '';
+  ta.style.width = (shape.w * FC.state.zoom) + 'px';
+  ta.style.height = (shape.h * FC.state.zoom) + 'px';
+  ta.style.fontSize = (shape.fontSize * FC.state.zoom) + 'px';
+  ta.style.color = shape.textColor;
+  ta.style.fontWeight = shape.fontBold ? 'bold' : 'normal';
+  ta.style.fontStyle = shape.fontItalic ? 'italic' : 'normal';
+  ta.style.fontFamily = shape.fontFamily || 'var(--font)';
+  ta.style.textAlign = shape.textAlign;
+
+  ta.addEventListener('blur', () => {
+    FC.pushUndo();
+    shape.text = ta.value;
+    FC.finishTextEdit();
+    FC.render();
+  });
+
+  ta.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { ta.blur(); }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ta.blur(); }
+    e.stopPropagation();
+  });
+
+  container.appendChild(ta);
+  document.body.appendChild(container);
+  FC.activeTextEditor = container;
+  ta.focus();
+  ta.select();
+};
+
+FC.finishTextEdit = function() {
+  if (FC.activeTextEditor) {
+    FC.activeTextEditor.remove();
+    FC.activeTextEditor = null;
+  }
+};
+
+// ===== UNDO/REDO =====
+FC.pushUndo = function() {
+  FC.state.undoStack.push(JSON.stringify({ shapes: FC.state.shapes, connectors: FC.state.connectors }));
+  if (FC.state.undoStack.length > 60) FC.state.undoStack.shift();
+  FC.state.redoStack = [];
+};
+
+FC.undo = function() {
+  if (FC.state.undoStack.length === 0) return;
+  FC.state.redoStack.push(JSON.stringify({ shapes: FC.state.shapes, connectors: FC.state.connectors }));
+  const data = JSON.parse(FC.state.undoStack.pop());
+  FC.state.shapes = data.shapes;
+  FC.state.connectors = data.connectors;
+  FC.state.selectedIds = [];
+  FC.render();
+  FC.updateStatusBar();
+};
+
+FC.redo = function() {
+  if (FC.state.redoStack.length === 0) return;
+  FC.state.undoStack.push(JSON.stringify({ shapes: FC.state.shapes, connectors: FC.state.connectors }));
+  const data = JSON.parse(FC.state.redoStack.pop());
+  FC.state.shapes = data.shapes;
+  FC.state.connectors = data.connectors;
+  FC.state.selectedIds = [];
+  FC.render();
+  FC.updateStatusBar();
+};
+
+// ===== PROPERTIES PANEL =====
+FC.updatePropsPanel = function() {
+  const panel = document.getElementById('props-content');
+  const ids = FC.state.selectedIds;
+
+  // Check for shape selection
+  const shapeIds = ids.filter(id => !id.startsWith('conn_'));
+  const connIds = ids.filter(id => id.startsWith('conn_'));
+
+  if (shapeIds.length === 1) {
+    const s = FC.getShape(shapeIds[0]);
+    if (!s) return;
+    panel.innerHTML = `
+      <div class="props-section">
+        <div class="props-title">Position & Size</div>
+        <div class="props-row"><label>X</label><input type="number" value="${Math.round(s.x)}" onchange="FC.setProp('${s.id}','x',+this.value)"></div>
+        <div class="props-row"><label>Y</label><input type="number" value="${Math.round(s.y)}" onchange="FC.setProp('${s.id}','y',+this.value)"></div>
+        <div class="props-row"><label>W</label><input type="number" value="${Math.round(s.w)}" onchange="FC.setProp('${s.id}','w',+this.value)"></div>
+        <div class="props-row"><label>H</label><input type="number" value="${Math.round(s.h)}" onchange="FC.setProp('${s.id}','h',+this.value)"></div>
+      </div>
+      <div class="props-section">
+        <div class="props-title">Fill</div>
+        <div class="props-row"><label>Color</label><input type="color" value="${s.fill === 'transparent' ? '#ffffff' : s.fill}" onchange="FC.setProp('${s.id}','fill',this.value)"></div>
+      </div>
+      <div class="props-section">
+        <div class="props-title">Border</div>
+        <div class="props-row"><label>Color</label><input type="color" value="${s.stroke === 'transparent' ? '#000000' : s.stroke}" onchange="FC.setProp('${s.id}','stroke',this.value)"></div>
+        <div class="props-row"><label>Width</label><input type="number" value="${s.strokeWidth}" min="0" max="10" onchange="FC.setProp('${s.id}','strokeWidth',+this.value)"></div>
+        <div class="props-row"><label>Style</label><select onchange="FC.setProp('${s.id}','strokeStyle',this.value)">
+          <option value="solid" ${s.strokeStyle==='solid'?'selected':''}>Solid</option>
+          <option value="dashed" ${s.strokeStyle==='dashed'?'selected':''}>Dashed</option>
+          <option value="dotted" ${s.strokeStyle==='dotted'?'selected':''}>Dotted</option>
+        </select></div>
+        <div class="props-row"><label>Radius</label><input type="number" value="${s.cornerRadius}" min="0" max="50" onchange="FC.setProp('${s.id}','cornerRadius',+this.value)"></div>
+      </div>
+      <div class="props-section">
+        <div class="props-title">Effects</div>
+        <div class="props-row"><label>Shadow</label><input type="checkbox" ${s.shadow?'checked':''} onchange="FC.setProp('${s.id}','shadow',this.checked)"></div>
+        <div class="props-row"><label>Opacity</label><input type="range" min="0" max="1" step="0.05" value="${s.opacity}" onchange="FC.setProp('${s.id}','opacity',+this.value)"><span>${Math.round(s.opacity*100)}%</span></div>
+      </div>
+      <div class="props-section">
+        <div class="props-title">Text</div>
+        <div class="props-row"><label>Text</label><input type="text" value="${(s.text||'').replace(/"/g,'&quot;')}" onchange="FC.setProp('${s.id}','text',this.value)"></div>
+        <div class="props-row"><label>Font</label><select onchange="FC.setProp('${s.id}','fontFamily',this.value)">
+          <option value="'Segoe UI', sans-serif" ${s.fontFamily==="'Segoe UI', sans-serif"?'selected':''}>Segoe UI (System)</option>
+          <option value="'Inter', sans-serif" ${s.fontFamily==="'Inter', sans-serif"?'selected':''}>Inter</option>
+          <option value="'Roboto', sans-serif" ${s.fontFamily==="'Roboto', sans-serif"?'selected':''}>Roboto</option>
+          <option value="'Poppins', sans-serif" ${s.fontFamily==="'Poppins', sans-serif"?'selected':''}>Poppins</option>
+          <option value="'Montserrat', sans-serif" ${s.fontFamily==="'Montserrat', sans-serif"?'selected':''}>Montserrat</option>
+          <option value="'Playfair Display', serif" ${s.fontFamily==="'Playfair Display', serif"?'selected':''}>Playfair Display</option>
+          <option value="'Sarabun', sans-serif" ${s.fontFamily==="'Sarabun', sans-serif"?'selected':''}>Sarabun (Thai Formal)</option>
+          <option value="'Kanit', sans-serif" ${s.fontFamily==="'Kanit', sans-serif"?'selected':''}>Kanit (Thai Modern)</option>
+          <option value="'Prompt', sans-serif" ${s.fontFamily==="'Prompt', sans-serif"?'selected':''}>Prompt (Thai Clean)</option>
+          <option value="'Mitr', sans-serif" ${s.fontFamily==="'Mitr', sans-serif"?'selected':''}>Mitr (Thai Rounded)</option>
+        </select></div>
+        <div class="props-row"><label>Size</label><input type="number" value="${s.fontSize}" min="8" max="72" onchange="FC.setProp('${s.id}','fontSize',+this.value)"></div>
+        <div class="props-row"><label>Color</label><input type="color" value="${s.textColor}" onchange="FC.setProp('${s.id}','textColor',this.value)"></div>
+        <div class="props-row"><label>Align</label><select onchange="FC.setProp('${s.id}','textAlign',this.value)">
+          <option value="left" ${s.textAlign==='left'?'selected':''}>Left</option>
+          <option value="center" ${s.textAlign==='center'?'selected':''}>Center</option>
+          <option value="right" ${s.textAlign==='right'?'selected':''}>Right</option>
+        </select></div>
+        <div class="props-row">
+          <button class="props-btn ${s.fontBold?'active':''}" onclick="FC.setProp('${s.id}','fontBold',!${s.fontBold})"><b>B</b></button>
+          <button class="props-btn ${s.fontItalic?'active':''}" onclick="FC.setProp('${s.id}','fontItalic',!${s.fontItalic})"><i>I</i></button>
+        </div>
+      </div>
+    `;
+  } else if (connIds.length === 1) {
+    const cId = connIds[0].replace('conn_', '');
+    const c = FC.state.connectors.find(cn => cn.id === cId || cn.id === connIds[0]);
+    if (!c) return;
+    panel.innerHTML = `
+      <div class="props-section">
+        <div class="props-title">Connector</div>
+        <div class="props-row"><label>Type</label><select onchange="FC.setConnProp('${c.id}','lineType',this.value)">
+          <option value="straight" ${c.lineType==='straight'?'selected':''}>Straight</option>
+          <option value="elbow" ${c.lineType==='elbow'?'selected':''}>Elbow</option>
+          <option value="rounded" ${c.lineType==='rounded'?'selected':''}>Rounded Elbow</option>
+          <option value="curve" ${c.lineType==='curve'?'selected':''}>Curved</option>
+        </select></div>
+        <div class="props-row"><label>Style</label><select onchange="FC.setConnProp('${c.id}','lineStyle',this.value)">
+          <option value="solid" ${c.lineStyle==='solid'?'selected':''}>Solid</option>
+          <option value="dashed" ${c.lineStyle==='dashed'?'selected':''}>Dashed</option>
+          <option value="dotted" ${c.lineStyle==='dotted'?'selected':''}>Dotted</option>
+        </select></div>
+        <div class="props-row"><label>Color</label><input type="color" value="${c.color}" onchange="FC.setConnProp('${c.id}','color',this.value)"></div>
+        <div class="props-row"><label>Width</label><input type="number" value="${c.width}" min="1" max="8" onchange="FC.setConnProp('${c.id}','width',+this.value)"></div>
+        <div class="props-row"><label>Start</label><select onchange="FC.setConnProp('${c.id}','startArrow',this.value)">
+          ${FC.arrowOptions(c.startArrow)}
+        </select></div>
+        <div class="props-row"><label>End</label><select onchange="FC.setConnProp('${c.id}','endArrow',this.value)">
+          ${FC.arrowOptions(c.endArrow)}
+        </select></div>
+        <div class="props-row"><label>Label</label><input type="text" value="${(c.label||'').replace(/"/g,'&quot;')}" onchange="FC.setConnProp('${c.id}','label',this.value)"></div>
+      </div>
+    `;
+  } else {
+    // Canvas properties or multi-select info
+    let html = `
+      <div class="props-section">
+        <div class="props-title">Canvas</div>
+        <div class="props-row">
+          <label>Grid</label>
+          <input type="checkbox" ${FC.state.gridVisible?'checked':''} onchange="FC.toggleGrid(this.checked)">
+          <label style="min-width:auto">Snap</label>
+          <input type="checkbox" ${FC.state.snapToGrid?'checked':''} onchange="FC.toggleSnap(this.checked)">
+        </div>
+        <div class="props-row">
+          <label>Size</label>
+          <input type="number" value="${FC.state.gridSize}" min="5" max="50" style="width:60px" onchange="FC.setGridSize(+this.value)">
+        </div>
+      </div>
+    `;
+    if (shapeIds.length > 1) {
+      html += `<div class="props-section"><div class="props-title">${shapeIds.length} shapes selected</div>
+        <div class="props-row"><button class="btn" onclick="FC.alignSelected('left')">Align Left</button><button class="btn" onclick="FC.alignSelected('center')">Center</button><button class="btn" onclick="FC.alignSelected('right')">Right</button></div>
+        <div class="props-row"><button class="btn" onclick="FC.alignSelected('top')">Top</button><button class="btn" onclick="FC.alignSelected('middle')">Middle</button><button class="btn" onclick="FC.alignSelected('bottom')">Bottom</button></div>
+        <div class="props-row"><button class="btn" onclick="FC.distribute('horizontal')">Dist H</button><button class="btn" onclick="FC.distribute('vertical')">Dist V</button></div>
+      </div>`;
+    }
+    panel.innerHTML = html;
+  }
+};
+
+FC.arrowOptions = function(current) {
+  const opts = [
+    ['none', 'None'],
+    ['arrow-filled', 'Filled Arrow'],
+    ['arrow-open', 'Open Arrow'],
+    ['circle-filled', 'Filled Circle'],
+    ['circle-open', 'Open Circle'],
+    ['diamond-filled', 'Filled Diamond'],
+    ['diamond-open', 'Open Diamond'],
+  ];
+  return opts.map(([v, l]) => `<option value="${v}" ${current === v ? 'selected' : ''}>${l}</option>`).join('');
+};
+
+FC.setProp = function(id, key, val) {
+  const s = FC.getShape(id);
+  if (!s) return;
+  FC.pushUndo();
+  s[key] = val;
+  FC.render();
+};
+
+FC.setConnProp = function(id, key, val) {
+  const c = FC.state.connectors.find(cn => cn.id === id);
+  if (!c) return;
+  FC.pushUndo();
+  c[key] = val;
+  FC.render();
+};
+
+// ===== GRID & SNAP =====
+FC.toggleGrid = function(val) {
+  if (typeof val === 'boolean') FC.state.gridVisible = val;
+  else FC.state.gridVisible = !FC.state.gridVisible;
+  FC.updateViewBox();
+  FC.closeAllMenus();
+};
+
+FC.toggleSnap = function(val) {
+  if (typeof val === 'boolean') FC.state.snapToGrid = val;
+  else FC.state.snapToGrid = !FC.state.snapToGrid;
+  FC.closeAllMenus();
+};
+
+FC.setGridSize = function(val) {
+  FC.state.gridSize = Math.max(5, Math.min(50, val));
+  FC.updateViewBox();
+};
+
+// ===== MENU SYSTEM =====
+FC.toggleMenu = function(item) {
+  const menu = item.dataset.menu;
+  const dd = document.getElementById('menu-' + menu);
+  const isOpen = dd.classList.contains('show');
+  FC.closeAllMenus();
+  if (!isOpen) {
+    dd.classList.add('show');
+    item.classList.add('active');
+  }
+};
+
+FC.closeAllMenus = function() {
+  document.querySelectorAll('.menu-dropdown').forEach(d => d.classList.remove('show'));
+  document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+};
+
+// ===== CONTEXT MENU =====
+FC.showContextMenu = function(x, y, items) {
+  const ctx = document.getElementById('context-menu');
+  ctx.innerHTML = '';
+  items.forEach(item => {
+    if (!item) {
+      ctx.innerHTML += '<div class="ctx-sep"></div>';
+    } else {
+      const div = document.createElement('div');
+      div.className = 'ctx-item';
+      div.innerHTML = `${item.label}${item.shortcut ? '<span class="shortcut" style="color:var(--gray-400);font-size:11px">'+item.shortcut+'</span>' : ''}`;
+      div.addEventListener('click', (e) => {
+        e.stopPropagation();
+        FC.closeContextMenu();
+        item.action();
+      });
+      ctx.appendChild(div);
+    }
+  });
+  ctx.style.left = x + 'px';
+  ctx.style.top = y + 'px';
+  ctx.classList.add('show');
+};
+
+FC.closeContextMenu = function() {
+  document.getElementById('context-menu').classList.remove('show');
+};
+
+// ===== PANEL TOGGLE =====
+FC.togglePanel = function(id) {
+  document.getElementById(id).classList.toggle('collapsed');
+  setTimeout(() => FC.updateViewBox(), 250);
+  FC.closeAllMenus();
+};
+
+FC.toggleSection = function(header) {
+  header.classList.toggle('collapsed');
+  header.nextElementSibling.classList.toggle('hidden');
+};
+
+// ===== SAVE/LOAD =====
+FC.saveFile = function() {
+  const data = {
+    version: 1,
+    shapes: FC.state.shapes,
+    connectors: FC.state.connectors,
+    theme: FC.state.theme,
+    zoom: FC.state.zoom,
+    panX: FC.state.panX,
+    panY: FC.state.panY,
+    gridSize: FC.state.gridSize,
+    nextId: FC.state.nextId,
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'flowchart.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  FC.closeAllMenus();
+};
+
+FC.openFile = function() {
+  document.getElementById('file-open').click();
+  FC.closeAllMenus();
+};
+
+FC.handleOpenFile = function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      FC.loadData(data);
+    } catch (err) {
+      alert('Invalid file format: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+};
+
+FC.loadData = function(data) {
+  FC.state.shapes = data.shapes || [];
+  FC.state.connectors = data.connectors || [];
+  FC.state.theme = data.theme || 'classic';
+  FC.state.zoom = data.zoom || 1;
+  FC.state.panX = data.panX || 0;
+  FC.state.panY = data.panY || 0;
+  FC.state.gridSize = data.gridSize || 20;
+  FC.state.nextId = data.nextId || FC.state.shapes.length + FC.state.connectors.length + 1;
+  FC.state.selectedIds = [];
+  FC.state.undoStack = [];
+  FC.state.redoStack = [];
+  FC.updateViewBox();
+  FC.render();
+  FC.updateStatusBar();
+};
+
+FC.autoSave = function() {
+  const data = {
+    version: 1,
+    shapes: FC.state.shapes,
+    connectors: FC.state.connectors,
+    theme: FC.state.theme,
+    zoom: FC.state.zoom,
+    panX: FC.state.panX,
+    panY: FC.state.panY,
+    gridSize: FC.state.gridSize,
+    nextId: FC.state.nextId,
+  };
+  localStorage.setItem('fc_autosave', JSON.stringify(data));
+  FC.state.lastAutoSave = new Date();
+  FC.updateStatusBar();
+};
+
+FC.restoreSession = function() {
+  const saved = localStorage.getItem('fc_autosave');
+  if (saved) {
+    try { FC.loadData(JSON.parse(saved)); } catch(e) { console.error(e); }
+  }
+};
+
+FC.newFile = function() {
+  if (FC.state.shapes.length > 0 && !confirm('Discard current flowchart?')) return;
+  FC.state.shapes = [];
+  FC.state.connectors = [];
+  FC.state.selectedIds = [];
+  FC.state.undoStack = [];
+  FC.state.redoStack = [];
+  FC.state.nextId = 1;
+  FC.state.zoom = 1;
+  FC.state.panX = 0;
+  FC.state.panY = 0;
+  FC.updateViewBox();
+  FC.render();
+  FC.updateStatusBar();
+  FC.closeAllMenus();
+};
+
+// ===== EXPORT =====
+FC.exportPNG = function() {
+  FC.closeAllMenus();
+  // Get bounding box
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  if (FC.state.shapes.length === 0) { alert('No shapes to export'); return; }
+  FC.state.shapes.forEach(s => {
+    minX = Math.min(minX, s.x);
+    minY = Math.min(minY, s.y);
+    maxX = Math.max(maxX, s.x + s.w);
+    maxY = Math.max(maxY, s.y + s.h);
+  });
+  const pad = 40;
+  const cw = maxX - minX + pad * 2;
+  const ch = maxY - minY + pad * 2;
+  const scale = 2;
+
+  // Clone SVG
+  const savedSel = FC.state.selectedIds;
+  FC.state.selectedIds = [];
+  FC.render();
+
+  const svgClone = FC.svg.cloneNode(true);
+  svgClone.setAttribute('viewBox', `${minX - pad} ${minY - pad} ${cw} ${ch}`);
+  svgClone.setAttribute('width', cw * scale);
+  svgClone.setAttribute('height', ch * scale);
+
+  // Remove grid, handles, selection
+  const gridBg = svgClone.querySelector('#grid-bg');
+  if (gridBg) gridBg.style.display = 'none';
+  const handles = svgClone.querySelector('#layer-handles');
+  if (handles) handles.innerHTML = '';
+  const guides = svgClone.querySelector('#layer-guides');
+  if (guides) guides.innerHTML = '';
+  const selection = svgClone.querySelector('#layer-selection');
+  if (selection) selection.innerHTML = '';
+
+  // Add white background
+  const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  bg.setAttribute('x', minX - pad);
+  bg.setAttribute('y', minY - pad);
+  bg.setAttribute('width', cw);
+  bg.setAttribute('height', ch);
+  bg.setAttribute('fill', 'white');
+  svgClone.insertBefore(bg, svgClone.firstChild);
+
+  // Remove connection points
+  svgClone.querySelectorAll('.connection-point').forEach(el => el.remove());
+
+  const svgData = new XMLSerializer().serializeToString(svgClone);
+  const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(svgBlob);
+
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = cw * scale;
+    canvas.height = ch * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+
+    canvas.toBlob(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'flowchart.png';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }, 'image/png');
+  };
+  img.src = url;
+
+  FC.state.selectedIds = savedSel;
+  FC.render();
+};
+
+FC.exportSVG = function() {
+  FC.closeAllMenus();
+  if (FC.state.shapes.length === 0) { alert('No shapes to export'); return; }
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  FC.state.shapes.forEach(s => {
+    minX = Math.min(minX, s.x);
+    minY = Math.min(minY, s.y);
+    maxX = Math.max(maxX, s.x + s.w);
+    maxY = Math.max(maxY, s.y + s.h);
+  });
+  const pad = 40;
+  const cw = maxX - minX + pad * 2;
+  const ch = maxY - minY + pad * 2;
+
+  const savedSel = FC.state.selectedIds;
+  FC.state.selectedIds = [];
+  FC.render();
+
+  const svgClone = FC.svg.cloneNode(true);
+  svgClone.setAttribute('viewBox', `${minX - pad} ${minY - pad} ${cw} ${ch}`);
+  svgClone.setAttribute('width', cw);
+  svgClone.setAttribute('height', ch);
+
+  const gridBg = svgClone.querySelector('#grid-bg');
+  if (gridBg) gridBg.style.display = 'none';
+  svgClone.querySelector('#layer-handles').innerHTML = '';
+  svgClone.querySelector('#layer-guides').innerHTML = '';
+  svgClone.querySelector('#layer-selection').innerHTML = '';
+  svgClone.querySelectorAll('.connection-point').forEach(el => el.remove());
+
+  const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  bg.setAttribute('x', minX - pad);
+  bg.setAttribute('y', minY - pad);
+  bg.setAttribute('width', cw);
+  bg.setAttribute('height', ch);
+  bg.setAttribute('fill', 'white');
+  svgClone.insertBefore(bg, svgClone.firstChild);
+
+  const svgData = new XMLSerializer().serializeToString(svgClone);
+  const blob = new Blob([svgData], { type: 'image/svg+xml' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'flowchart.svg';
+  a.click();
+  URL.revokeObjectURL(a.href);
+
+  FC.state.selectedIds = savedSel;
+  FC.render();
+};
+
+// ===== MERMAID IMPORT/EXPORT =====
+FC.importMermaidDialog = function() {
+  FC.closeAllMenus();
+  FC.openModal('modal-mermaid-import');
+};
+
+FC.exportMermaidDialog = function() {
+  FC.closeAllMenus();
+  document.getElementById('mermaid-export-text').value = FC.toMermaid();
+  FC.openModal('modal-mermaid-export');
+};
+
+FC.copyMermaidExport = function() {
+  const text = document.getElementById('mermaid-export-text');
+  text.select();
+  navigator.clipboard.writeText(text.value).then(() => alert('Copied!'));
+};
+
+FC.importMermaid = function() {
+  const code = document.getElementById('mermaid-import-text').value.trim();
+  if (!code) return;
+  FC.closeModal('modal-mermaid-import');
+  FC.pushUndo();
+  FC.parseMermaid(code);
+  FC.render();
+  FC.updateStatusBar();
+  setTimeout(() => FC.zoomFit(), 100);
+};
+
+FC.parseMermaid = function(code) {
+  const lines = code.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('%%'));
+  let direction = 'TD'; // Top-Down
+  const nodeMap = {};
+  const edges = [];
+
+  // Parse direction
+  const firstLine = lines[0];
+  const dirMatch = firstLine.match(/^(?:graph|flowchart)\s+(TD|TB|LR|RL|BT)/i);
+  if (dirMatch) {
+    direction = dirMatch[1].toUpperCase();
+    if (direction === 'TB') direction = 'TD';
+    lines.shift();
+  } else if (/^(?:graph|flowchart)\b/i.test(firstLine)) {
+    lines.shift();
+  }
+
+  // Join continuation lines
+  const joinedLines = lines.join('\n').replace(/\n\s+/g, ' ').split('\n').map(l => l.trim()).filter(Boolean);
+
+  // Parse each line
+  joinedLines.forEach(line => {
+    // Parse subgraph (skip for now)
+    if (/^subgraph\b/i.test(line) || /^end\b/i.test(line)) return;
+    // Parse style/class (skip)
+    if (/^(?:style|class|classDef)\b/i.test(line)) return;
+
+    // Find edges: A --> B, A -->|text| B, A -.-> B, A ==> B
+    // Regex to capture: nodeA[label] linkOp nodeB[label]
+    const edgeRegex = /^(.+?)\s*(-->|-.->|==>|---|-.-|===|-->\|[^|]*\||-.->?\|[^|]*\||==>\|[^|]*\|)\s*(.+)$/;
+    const m = line.match(edgeRegex);
+    if (m) {
+      // Could be chained: A --> B --> C
+      let remainder = line;
+      while (true) {
+        const em = remainder.match(/^(.+?)\s*(-->|-.->|==>|---|-.-|===)\s*(?:\|([^|]*)\|\s*)?(.+)$/);
+        if (!em) {
+          // Try link with embedded label: -->|text|
+          const em2 = remainder.match(/^(.+?)\s*(-->|-.->|==>)\|([^|]*)\|\s*(.+)$/);
+          if (em2) {
+            const fromNode = FC.parseMermaidNode(em2[1].trim(), nodeMap);
+            const label = em2[3].trim();
+            const rest = em2[4].trim();
+            const toNode = FC.parseMermaidNode(rest.split(/\s*(?:-->|-.->|==>|---)/)[0].trim(), nodeMap);
+            edges.push({ from: fromNode.id, to: toNode.id, label, style: em2[2].includes('.') ? 'dashed' : 'solid' });
+            // Check for chain
+            const chainIdx = rest.indexOf('-->');
+            const chainIdx2 = rest.indexOf('-.->');
+            const chainIdx3 = rest.indexOf('==>');
+            const ci = [chainIdx, chainIdx2, chainIdx3].filter(i => i >= 0);
+            if (ci.length > 0) {
+              remainder = toNode.raw + rest.substring(Math.min(...ci));
+              continue;
+            }
+          } else {
+            // Single node definition
+            FC.parseMermaidNode(remainder.trim(), nodeMap);
+          }
+          break;
+        }
+        const fromNode = FC.parseMermaidNode(em[1].trim(), nodeMap);
+        const label = em[3] || '';
+        const linkType = em[2];
+        const restStr = em[4].trim();
+        // Get target node (first token)
+        const nextEdge = restStr.match(/^(.+?)\s*(-->|-.->|==>|---|-.-|===)/);
+        let toRaw;
+        if (nextEdge) {
+          toRaw = nextEdge[1].trim();
+          remainder = restStr;
+        } else {
+          toRaw = restStr;
+          remainder = '';
+        }
+        const toNode = FC.parseMermaidNode(toRaw, nodeMap);
+        edges.push({
+          from: fromNode.id,
+          to: toNode.id,
+          label: label,
+          style: linkType.includes('.') ? 'dashed' : 'solid'
+        });
+        if (!nextEdge) break;
+        remainder = toRaw + restStr.substring(nextEdge.index + nextEdge[1].length);
+        // Prevent re-parse the entire thing
+        if (nextEdge) {
+          remainder = restStr.substring(nextEdge[1].length);
+          remainder = toNode.raw + remainder;
+        }
+        // Safety: if remainder is the same, break
+        if (remainder === line) break;
+      }
+    } else {
+      FC.parseMermaidNode(line.trim(), nodeMap);
+    }
+  });
+
+  // Auto-layout
+  const nodes = Object.values(nodeMap);
+  const isHorizontal = direction === 'LR' || direction === 'RL';
+  const spacing = isHorizontal ? { x: 200, y: 100 } : { x: 160, y: 120 };
+
+  // Simple topological layout
+  const levels = {};
+  const visited = new Set();
+  const roots = nodes.filter(n => !edges.some(e => e.to === n.id));
+  if (roots.length === 0 && nodes.length > 0) roots.push(nodes[0]);
+
+  function assignLevel(nodeId, level) {
+    if (visited.has(nodeId)) return;
+    visited.add(nodeId);
+    levels[nodeId] = Math.max(levels[nodeId] || 0, level);
+    edges.filter(e => e.from === nodeId).forEach(e => assignLevel(e.to, level + 1));
+  }
+  roots.forEach(n => assignLevel(n.id, 0));
+  // Assign unvisited nodes
+  nodes.forEach(n => { if (!visited.has(n.id)) { levels[n.id] = 0; } });
+
+  // Group by level
+  const levelGroups = {};
+  for (const [nid, lv] of Object.entries(levels)) {
+    if (!levelGroups[lv]) levelGroups[lv] = [];
+    levelGroups[lv].push(nid);
+  }
+
+  const theme = FC.THEMES[FC.state.theme];
+  const startX = 100, startY = 100;
+
+  // Create shapes
+  for (const [lv, nids] of Object.entries(levelGroups)) {
+    const lvNum = parseInt(lv);
+    nids.forEach((nid, idx) => {
+      const node = nodeMap[nid];
+      const def = FC.SHAPE_DEFS[node.shapeType] || { w: 140, h: 60 };
+      let sx, sy;
+      if (isHorizontal) {
+        sx = startX + lvNum * spacing.x;
+        sy = startY + idx * spacing.y;
+        if (direction === 'RL') sx = startX + (Object.keys(levelGroups).length - 1 - lvNum) * spacing.x;
+      } else {
+        sx = startX + idx * spacing.x;
+        sy = startY + lvNum * spacing.y;
+        if (direction === 'BT') sy = startY + (Object.keys(levelGroups).length - 1 - lvNum) * spacing.y;
+      }
+
+      const shape = {
+        id: 'shape_' + FC.state.nextId++,
+        type: node.shapeType,
+        x: sx, y: sy,
+        w: def.w, h: def.h,
+        text: node.label,
+        fill: theme.fill,
+        stroke: theme.stroke,
+        strokeWidth: 2,
+        strokeStyle: 'solid',
+        cornerRadius: 0,
+        textColor: theme.text,
+        fontSize: 13,
+        fontBold: false,
+        fontItalic: false,
+        textAlign: 'center',
+        shadow: false,
+        opacity: 1,
+      };
+      FC.state.shapes.push(shape);
+      node.shapeId = shape.id;
+    });
+  }
+
+  // Create connectors
+  edges.forEach(e => {
+    const fromNode = nodeMap[e.from];
+    const toNode = nodeMap[e.to];
+    if (!fromNode || !toNode || !fromNode.shapeId || !toNode.shapeId) return;
+
+    let fromSide, toSide;
+    if (isHorizontal) {
+      fromSide = direction === 'RL' ? 'left' : 'right';
+      toSide = direction === 'RL' ? 'right' : 'left';
+    } else {
+      fromSide = direction === 'BT' ? 'top' : 'bottom';
+      toSide = direction === 'BT' ? 'bottom' : 'top';
+    }
+
+    const conn = {
+      id: 'conn_' + FC.state.nextId++,
+      fromId: fromNode.shapeId,
+      fromSide,
+      toId: toNode.shapeId,
+      toSide,
+      lineType: 'elbow',
+      lineStyle: e.style || 'solid',
+      color: theme.connStroke,
+      width: 2,
+      startArrow: 'none',
+      endArrow: 'arrow-filled',
+      label: e.label || '',
+    };
+    FC.state.connectors.push(conn);
+  });
+};
+
+FC.parseMermaidNode = function(raw, nodeMap) {
+  // Remove trailing semicolons
+  raw = raw.replace(/;+$/, '').trim();
+
+  // Match node patterns: A[Label], A{Label}, A(Label), A((Label)), A[(Label)], A>Label], A[/Label/], A[\Label\]
+  const patterns = [
+    { regex: /^([A-Za-z0-9_]+)\[\((.+?)\)\]$/, type: 'database' },
+    { regex: /^([A-Za-z0-9_]+)\(\((.+?)\)\)$/, type: 'connector_circle' },
+    { regex: /^([A-Za-z0-9_]+)\((.+?)\)$/, type: 'startend' },
+    { regex: /^([A-Za-z0-9_]+)\{(.+?)\}$/, type: 'decision' },
+    { regex: /^([A-Za-z0-9_]+)\[\/(.+?)\/\]$/, type: 'data' },
+    { regex: /^([A-Za-z0-9_]+)\[\\(.+?)\\\]$/, type: 'manual_input' },
+    { regex: /^([A-Za-z0-9_]+)\[(.+?)\]$/, type: 'process' },
+    { regex: /^([A-Za-z0-9_]+)>(.+?)\]$/, type: 'delay' },
+    { regex: /^([A-Za-z0-9_]+)\{\{(.+?)\}\}$/, type: 'preparation' },
+  ];
+
+  for (const p of patterns) {
+    const m = raw.match(p.regex);
+    if (m) {
+      const id = m[1];
+      const label = m[2].replace(/"/g, '');
+      if (!nodeMap[id]) {
+        nodeMap[id] = { id, label, shapeType: p.type, raw };
+      }
+      return nodeMap[id];
+    }
+  }
+
+  // Plain node ID
+  const plainMatch = raw.match(/^([A-Za-z0-9_]+)$/);
+  if (plainMatch) {
+    const id = plainMatch[1];
+    if (!nodeMap[id]) {
+      nodeMap[id] = { id, label: id, shapeType: 'process', raw };
+    }
+    return nodeMap[id];
+  }
+
+  // Fallback
+  const fbId = raw.replace(/[^A-Za-z0-9_]/g, '_').substring(0, 20);
+  if (!nodeMap[fbId]) {
+    nodeMap[fbId] = { id: fbId, label: raw, shapeType: 'process', raw };
+  }
+  return nodeMap[fbId];
+};
+
+FC.toMermaid = function() {
+  if (FC.state.shapes.length === 0) return 'graph TD\n    %% No shapes';
+
+  let code = 'graph TD\n';
+  const shapeToMermaidId = {};
+  let counter = 0;
+
+  FC.state.shapes.forEach(s => {
+    const mid = String.fromCharCode(65 + counter % 26) + (counter >= 26 ? Math.floor(counter / 26) : '');
+    counter++;
+    shapeToMermaidId[s.id] = mid;
+    const label = s.text || mid;
+
+    switch (s.type) {
+      case 'process': case 'rectangle': case 'predefined': case 'textbox':
+        code += `    ${mid}["${label}"]\n`; break;
+      case 'decision':
+        code += `    ${mid}{"${label}"}\n`; break;
+      case 'startend':
+        code += `    ${mid}("${label}")\n`; break;
+      case 'data':
+        code += `    ${mid}[/"${label}"/]\n`; break;
+      case 'database':
+        code += `    ${mid}[("${label}")]\n`; break;
+      case 'connector_circle':
+        code += `    ${mid}(("${label}"))\n`; break;
+      case 'preparation':
+        code += `    ${mid}{{"${label}"}}\n`; break;
+      default:
+        code += `    ${mid}["${label}"]\n`; break;
+    }
+  });
+
+  FC.state.connectors.forEach(c => {
+    const fromMid = shapeToMermaidId[c.fromId];
+    const toMid = shapeToMermaidId[c.toId];
+    if (!fromMid || !toMid) return;
+    const arrow = c.lineStyle === 'dashed' ? '-.->' : '-->';
+    if (c.label) {
+      code += `    ${fromMid} ${arrow}|"${c.label}"| ${toMid}\n`;
+    } else {
+      code += `    ${fromMid} ${arrow} ${toMid}\n`;
+    }
+  });
+
+  return code;
+};
+
+// ===== THEMES =====
+FC.applyTheme = function(themeName) {
+  FC.pushUndo();
+  FC.state.theme = themeName;
+  const theme = FC.THEMES[themeName];
+
+  FC.state.shapes.forEach(s => {
+    if (s.type === 'textbox') return;
+    s.fill = theme.fill;
+    s.stroke = theme.stroke;
+    s.textColor = theme.text;
+  });
+
+  FC.state.connectors.forEach(c => {
+    c.color = theme.connStroke;
+  });
+
+  FC.render();
+  FC.closeModal('modal-themes');
+};
+
+FC.themeDialog = function() {
+  FC.closeAllMenus();
+  FC.buildThemeGrid();
+  FC.openModal('modal-themes');
+};
+
+FC.buildThemeGrid = function() {
+  const grid = document.getElementById('theme-grid');
+  grid.innerHTML = '';
+  for (const [key, theme] of Object.entries(FC.THEMES)) {
+    const card = document.createElement('div');
+    card.className = 'theme-card' + (FC.state.theme === key ? ' active' : '');
+    card.innerHTML = `
+      <div class="preview" style="background:${theme.fill}; border:2px solid ${theme.stroke}">
+        <span style="background:${theme.stroke}"></span>
+        <span style="background:${theme.text}; width:14px; height:3px; border-radius:1px"></span>
+        <span style="background:${theme.connStroke}; width:3px; height:14px; border-radius:1px"></span>
+      </div>
+      <div class="name">${theme.name}</div>
+    `;
+    card.addEventListener('click', () => FC.applyTheme(key));
+    grid.appendChild(card);
+  }
+};
+
+// ===== SEARCH & REPLACE =====
+FC.searchReplaceDialog = function() {
+  FC.closeAllMenus();
+  FC.openModal('modal-search');
+  setTimeout(() => document.getElementById('search-find').focus(), 100);
+};
+
+FC.findText = function() {
+  const query = document.getElementById('search-find').value;
+  if (!query) return;
+  const matches = FC.state.shapes.filter(s => s.text && s.text.includes(query));
+  document.getElementById('search-result').textContent = `Found ${matches.length} match(es)`;
+  if (matches.length > 0) {
+    FC.state.selectedIds = matches.map(s => s.id);
+    FC.render();
+  }
+};
+
+FC.replaceText = function() {
+  const find = document.getElementById('search-find').value;
+  const replace = document.getElementById('search-replace').value;
+  if (!find) return;
+  const match = FC.state.shapes.find(s => s.text && s.text.includes(find));
+  if (match) {
+    FC.pushUndo();
+    match.text = match.text.replace(find, replace);
+    document.getElementById('search-result').textContent = 'Replaced 1 occurrence';
+    FC.render();
+  }
+};
+
+FC.replaceAllText = function() {
+  const find = document.getElementById('search-find').value;
+  const replace = document.getElementById('search-replace').value;
+  if (!find) return;
+  FC.pushUndo();
+  let count = 0;
+  FC.state.shapes.forEach(s => {
+    if (s.text && s.text.includes(find)) {
+      s.text = s.text.replaceAll(find, replace);
+      count++;
+    }
+  });
+  document.getElementById('search-result').textContent = `Replaced ${count} occurrence(s)`;
+  FC.render();
+};
+
+// ===== SHORTCUTS DIALOG =====
+FC.shortcutsDialog = function() {
+  FC.closeAllMenus();
+  FC.openModal('modal-shortcuts');
+};
+
+FC.buildShortcutsList = function() {
+  const list = document.getElementById('shortcuts-list');
+  const shortcuts = [
+    ['Select Tool', 'V'], ['Pan Tool', 'H'], ['Connector Tool', 'L'], ['Text Tool', 'T'],
+    ['Undo', 'Ctrl+Z'], ['Redo', 'Ctrl+Y'], ['Copy', 'Ctrl+C'], ['Paste', 'Ctrl+V'],
+    ['Cut', 'Ctrl+X'], ['Duplicate', 'Ctrl+D'], ['Select All', 'Ctrl+A'], ['Delete', 'Del'],
+    ['Save', 'Ctrl+S'], ['Open', 'Ctrl+O'], ['Export PNG', 'Ctrl+E'], ['New', 'Ctrl+N'],
+    ['Zoom In', 'Ctrl+='], ['Zoom Out', 'Ctrl+-'], ['Zoom 100%', 'Ctrl+0'], ['Find', 'Ctrl+H'],
+    ['Pan Canvas', 'Space+Drag'], ['Move 1px', 'Arrow Keys'], ['Move 10px', 'Shift+Arrow'],
+    ['Deselect', 'Esc'],
+  ];
+  list.innerHTML = shortcuts.map(([name, key]) =>
+    `<div class="shortcut-item"><span>${name}</span><span class="key">${key}</span></div>`
+  ).join('');
+};
+
+FC.aboutDialog = function() {
+  FC.closeAllMenus();
+  FC.openModal('modal-about');
+};
+
+// ===== MODAL =====
+FC.openModal = function(id) {
+  document.getElementById(id).classList.add('show');
+};
+
+FC.closeModal = function(id) {
+  document.getElementById(id).classList.remove('show');
+};
+
+// ===== WELCOME =====
+FC.closeWelcome = function() {
+  document.getElementById('welcome-screen').classList.add('hidden');
+};
+
+// ===== MINIMAP =====
+FC.updateMinimap = function() {
+  const mc = document.getElementById('minimap-content');
+  mc.innerHTML = '';
+
+  if (FC.state.shapes.length === 0) return;
+
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  FC.state.shapes.forEach(s => {
+    minX = Math.min(minX, s.x);
+    minY = Math.min(minY, s.y);
+    maxX = Math.max(maxX, s.x + s.w);
+    maxY = Math.max(maxY, s.y + s.h);
+  });
+
+  const pad = 30;
+  const cw = maxX - minX + pad * 2;
+  const ch = maxY - minY + pad * 2;
+  const mmW = 160, mmH = 110;
+  const scale = Math.min(mmW / cw, mmH / ch);
+
+  const mmSvg = document.getElementById('minimap-svg');
+  mmSvg.setAttribute('viewBox', `${minX - pad} ${minY - pad} ${cw} ${ch}`);
+
+  FC.state.shapes.forEach(s => {
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', s.x);
+    rect.setAttribute('y', s.y);
+    rect.setAttribute('width', s.w);
+    rect.setAttribute('height', s.h);
+    rect.setAttribute('fill', s.fill === 'transparent' ? '#ddd' : s.fill);
+    rect.setAttribute('stroke', s.stroke === 'transparent' ? '#aaa' : s.stroke);
+    rect.setAttribute('stroke-width', 2 / scale);
+    mc.appendChild(rect);
+  });
+
+  // Viewport rectangle
+  const rect = FC.container.getBoundingClientRect();
+  const vp = document.getElementById('minimap-vp');
+  vp.setAttribute('x', FC.state.panX);
+  vp.setAttribute('y', FC.state.panY);
+  vp.setAttribute('width', rect.width / FC.state.zoom);
+  vp.setAttribute('height', rect.height / FC.state.zoom);
+};
+
+// ===== STATUS BAR =====
+FC.updateStatusBar = function() {
+  document.getElementById('status-zoom').textContent = Math.round(FC.state.zoom * 100) + '%';
+  document.getElementById('status-count').textContent = `Objects: ${FC.state.shapes.length + FC.state.connectors.length}`;
+  if (FC.state.lastAutoSave) {
+    const t = FC.state.lastAutoSave;
+    document.getElementById('status-save').textContent = `Auto-saved: ${t.getHours().toString().padStart(2,'0')}:${t.getMinutes().toString().padStart(2,'0')}:${t.getSeconds().toString().padStart(2,'0')}`;
+  }
+};
+
+// ===== BOOT =====
+document.addEventListener('DOMContentLoaded', FC.init);
+</script>
+</body>
+</html>
