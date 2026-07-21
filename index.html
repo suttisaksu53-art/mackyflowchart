@@ -3357,7 +3357,9 @@ FC.showContextMenu = function(x, y, items) {
   ctx.innerHTML = '';
   items.forEach(item => {
     if (!item) {
-      ctx.innerHTML += '<div class="ctx-sep"></div>';
+      const sep = document.createElement('div');
+      sep.className = 'ctx-sep';
+      ctx.appendChild(sep);
     } else {
       const div = document.createElement('div');
       div.className = 'ctx-item';
