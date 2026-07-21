@@ -2012,6 +2012,22 @@ FC.onCanvasMouseUp = function(e) {
 
 FC.onCanvasDblClick = function(e) {
   const pt = FC.screenToCanvas(e.clientX, e.clientY);
+
+  // Check for double-clicking a waypoint to delete it
+  const selConnId = FC.state.selectedIds.find(id => id.startsWith('conn_'));
+  if (selConnId) {
+    const wpHit = FC.hitTestWaypoint(pt.x, pt.y);
+    if (wpHit && wpHit.type === 'waypoint') {
+      const conn = FC.state.connectors.find(c => c.id === wpHit.connId);
+      if (conn && conn.waypoints) {
+        FC.pushUndo();
+        conn.waypoints.splice(wpHit.wpIndex, 1);
+        FC.render();
+        return;
+      }
+    }
+  }
+
   const hit = FC.hitTestShape(pt.x, pt.y);
   if (hit) {
     FC.setTool('select');
