@@ -754,15 +754,34 @@ body {
 .text-editor-container textarea {
   border: 2px solid var(--primary);
   border-radius: 4px;
-  padding: 4px 6px;
+  padding: 6px 8px;
   font-family: var(--font);
   font-size: 13px;
   resize: none;
   outline: none;
   text-align: center;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.97);
   color: var(--gray-800);
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  line-height: 1.4;
+}
+
+/* Waypoint handles on connectors */
+.waypoint-handle {
+  fill: #ffffff;
+  stroke: var(--primary);
+  stroke-width: 1.5;
+  cursor: move;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+}
+.waypoint-handle:hover {
+  fill: var(--primary-light);
+  stroke: var(--primary-hover);
+  r: 6;
 }
 
 /* ===== Mermaid Textarea ===== */
@@ -1345,6 +1364,8 @@ FC.state = {
   isResizing: false,
   isConnecting: false,
   isSelecting: false,
+  isDraggingWaypoint: false,
+  waypointDrag: null,
   dragStart: null,
   dragOffsets: null,
   resizeHandle: null,
@@ -1364,36 +1385,17 @@ FC.preventDevTools = function() {
     }
   });
 
-  // Block key combinations
+  // Block key combinations for inspecting
   document.addEventListener('keydown', (e) => {
-    // F12
-    if (e.key === 'F12') {
+    if (e.key === 'F12' || e.code === 'F12') {
       e.preventDefault();
       return false;
     }
-    // Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) {
-      e.preventDefault();
-      return false;
-    }
-    // Ctrl+U (View Source)
-    if ((e.ctrlKey || e.metaKey) && (e.key === 'U' || e.key === 'u')) {
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['I','i','J','j','C','c'].includes(e.key)) {
       e.preventDefault();
       return false;
     }
   }, true);
-
-  // Anti-debugging loop
-  setInterval(() => {
-    (function() {
-      const before = new Date().getTime();
-      debugger;
-      const after = new Date().getTime();
-      if (after - before > 100) {
-        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0f172a;color:#f8fafc;font-family:sans-serif;font-size:24px">Developer Tools are disabled.</div>';
-      }
-    })();
-  }, 1000);
 };
 
 // ===== INITIALIZE =====
@@ -1569,7 +1571,6 @@ FC.bindEvents = function() {
   FC.svg.addEventListener('mousedown', FC.onCanvasMouseDown);
   FC.svg.addEventListener('mousemove', FC.onCanvasMouseMove);
   FC.svg.addEventListener('mouseup', FC.onCanvasMouseUp);
-  FC.svg.addEventListener('dblclick', FC.onCanvasDblClick);
   FC.svg.addEventListener('wheel', FC.onCanvasWheel, { passive: false });
   FC.svg.addEventListener('contextmenu', FC.onCanvasContext);
 
@@ -1704,6 +1705,18 @@ FC.setTool = function(tool) {
 
 // ===== CANVAS MOUSE EVENTS =====
 FC.onCanvasMouseDown = function(e) {
+  const now = Date.now();
+  if (FC.state.lastClickTime && now - FC.state.lastClickTime < 350) {
+    if (Math.hypot(e.clientX - FC.state.lastClickPos.x, e.clientY - FC.state.lastClickPos.y) < 10) {
+      FC.state.lastClickTime = 0;
+      e.preventDefault(); // Prevent browser from stealing focus back from textarea
+      FC.onCanvasDblClick(e);
+      return;
+    }
+  }
+  FC.state.lastClickTime = now;
+  FC.state.lastClickPos = { x: e.clientX, y: e.clientY };
+
   if (e.button === 1 || (e.button === 0 && (FC.state.tool === 'pan' || FC.state.spaceHeld))) {
     FC.state.isPanning = true;
     FC.state.panStart = { x: e.clientX, y: e.clientY, px: FC.state.panX, py: FC.state.panY };
@@ -1723,6 +1736,19 @@ FC.onCanvasMouseDown = function(e) {
       const s = FC.getShape(FC.state.selectedIds[0]);
       FC.state.resizeHandle = handle;
       FC.state.resizeStart = { x: pt.x, y: pt.y, sx: s.x, sy: s.y, sw: s.w, sh: s.h };
+      FC.pushUndo();
+      e.preventDefault();
+      return;
+    }
+  }
+
+  // Check for waypoint drag on selected connector
+  const selConnId = FC.state.selectedIds.find(id => id.startsWith('conn_'));
+  if (selConnId) {
+    const wpHit = FC.hitTestWaypoint(pt.x, pt.y);
+    if (wpHit) {
+      FC.state.isDraggingWaypoint = true;
+      FC.state.waypointDrag = wpHit;
       FC.pushUndo();
       e.preventDefault();
       return;
@@ -1815,7 +1841,7 @@ FC.onCanvasMouseDown = function(e) {
       FC.pushUndo();
       FC.render();
     } else if (connHit) {
-      FC.state.selectedIds = ['conn_' + connHit.id];
+      FC.state.selectedIds = [connHit.id];
       FC.render();
     } else {
       if (!e.shiftKey) FC.state.selectedIds = [];
@@ -1836,6 +1862,16 @@ FC.onCanvasMouseMove = function(e) {
     FC.state.panX = FC.state.panStart.px - dx / FC.state.zoom;
     FC.state.panY = FC.state.panStart.py - dy / FC.state.zoom;
     FC.updateViewBox();
+    return;
+  }
+
+  if (FC.state.isDraggingWaypoint && FC.state.waypointDrag) {
+    const wp = FC.state.waypointDrag;
+    const conn = FC.state.connectors.find(c => c.id === wp.connId);
+    if (conn && conn.waypoints) {
+      conn.waypoints[wp.wpIndex] = [FC.snapValue(pt.x), FC.snapValue(pt.y)];
+      FC.render();
+    }
     return;
   }
 
@@ -1915,7 +1951,7 @@ FC.onCanvasMouseMove = function(e) {
         if (!pts) return false;
         return pts.some(([px, py]) => px >= rx && px <= rx + rw && py >= ry && py <= ry + rh);
       })
-      .map(c => 'conn_' + c.id);
+      .map(c => c.id);
 
     FC.state.selectedIds = [...selectedShapes, ...selectedConns];
     FC.render();
@@ -1930,6 +1966,13 @@ FC.onCanvasMouseUp = function(e) {
   if (FC.state.isPanning) {
     FC.state.isPanning = false;
     FC.container.style.cursor = FC.state.tool === 'pan' ? 'grab' : 'default';
+    return;
+  }
+
+  if (FC.state.isDraggingWaypoint) {
+    FC.state.isDraggingWaypoint = false;
+    FC.state.waypointDrag = null;
+    FC.render();
     return;
   }
 
@@ -1971,19 +2014,25 @@ FC.onCanvasDblClick = function(e) {
   const pt = FC.screenToCanvas(e.clientX, e.clientY);
   const hit = FC.hitTestShape(pt.x, pt.y);
   if (hit) {
+    FC.setTool('select');
     FC.startTextEdit(hit);
     return;
   }
   // Double-click connector label
   const connHit = FC.hitTestConnector(pt.x, pt.y);
   if (connHit) {
+    FC.setTool('select');
     const label = prompt('Connector label:', connHit.label || '');
     if (label !== null) {
       FC.pushUndo();
       connHit.label = label;
       FC.render();
     }
+    return;
   }
+
+  // Double-click on empty space resets to Select tool
+  FC.setTool('select');
 };
 
 FC.onCanvasWheel = function(e) {
@@ -2021,15 +2070,17 @@ FC.onCanvasContext = function(e) {
       { label: 'Delete', shortcut: 'Del', action: () => FC.deleteSelected() },
     ];
   } else if (connHit) {
-    FC.state.selectedIds = ['conn_' + connHit.id];
+    FC.state.selectedIds = [connHit.id];
     items = [
       { label: 'Edit Label', action: () => {
         const l = prompt('Connector label:', connHit.label || '');
         if (l !== null) { FC.pushUndo(); connHit.label = l; FC.render(); }
       }},
-      { label: 'Straight Line', action: () => { FC.pushUndo(); connHit.lineType = 'straight'; FC.render(); }},
-      { label: 'Elbow Line', action: () => { FC.pushUndo(); connHit.lineType = 'elbow'; FC.render(); }},
-      { label: 'Curved Line', action: () => { FC.pushUndo(); connHit.lineType = 'curve'; FC.render(); }},
+      { label: 'Straight Line', action: () => { FC.pushUndo(); connHit.lineType = 'straight'; connHit.waypoints = []; FC.render(); }},
+      { label: 'Elbow Line', action: () => { FC.pushUndo(); connHit.lineType = 'elbow'; connHit.waypoints = []; FC.render(); }},
+      { label: 'Rounded Elbow Line', action: () => { FC.pushUndo(); connHit.lineType = 'rounded'; connHit.waypoints = []; FC.render(); }},
+      { label: 'Curved Line', action: () => { FC.pushUndo(); connHit.lineType = 'curve'; connHit.waypoints = []; FC.render(); }},
+      { label: 'Reset Waypoints (Reset Path)', action: () => { FC.pushUndo(); connHit.waypoints = []; FC.render(); }},
       null,
       { label: 'Delete', action: () => { FC.pushUndo(); FC.state.connectors = FC.state.connectors.filter(c => c.id !== connHit.id); FC.state.selectedIds = []; FC.render(); }},
     ];
@@ -2072,24 +2123,26 @@ FC.onKeyDown = function(e) {
   if (FC.isTextEditing()) return;
 
   const ctrl = e.ctrlKey || e.metaKey;
+  const code = e.code;
+  const key = e.key ? e.key.toLowerCase() : '';
 
-  if (ctrl && e.key === 'z') { e.preventDefault(); FC.undo(); return; }
-  if (ctrl && e.key === 'y') { e.preventDefault(); FC.redo(); return; }
-  if (ctrl && e.key === 'c') { e.preventDefault(); FC.copySelected(); return; }
-  if (ctrl && e.key === 'v') { e.preventDefault(); FC.paste(); return; }
-  if (ctrl && e.key === 'x') { e.preventDefault(); FC.cutSelected(); return; }
-  if (ctrl && e.key === 'd') { e.preventDefault(); FC.duplicateSelected(); return; }
-  if (ctrl && e.key === 'a') { e.preventDefault(); FC.selectAll(); return; }
-  if (ctrl && e.key === 's') { e.preventDefault(); FC.saveFile(); return; }
-  if (ctrl && e.key === 'e') { e.preventDefault(); FC.exportPNG(); return; }
-  if (ctrl && e.key === 'o') { e.preventDefault(); FC.openFile(); return; }
-  if (ctrl && e.key === 'n') { e.preventDefault(); FC.newFile(); return; }
-  if (ctrl && e.key === 'h') { e.preventDefault(); FC.searchReplaceDialog(); return; }
+  if (ctrl && (code === 'KeyZ' || key === 'z')) { e.preventDefault(); FC.undo(); return; }
+  if (ctrl && (code === 'KeyY' || key === 'y')) { e.preventDefault(); FC.redo(); return; }
+  if (ctrl && (code === 'KeyC' || key === 'c')) { e.preventDefault(); FC.copySelected(); return; }
+  if (ctrl && (code === 'KeyV' || key === 'v')) { e.preventDefault(); FC.paste(); return; }
+  if (ctrl && (code === 'KeyX' || key === 'x')) { e.preventDefault(); FC.cutSelected(); return; }
+  if (ctrl && (code === 'KeyD' || key === 'd')) { e.preventDefault(); FC.duplicateSelected(); return; }
+  if (ctrl && (code === 'KeyA' || key === 'a')) { e.preventDefault(); FC.selectAll(); return; }
+  if (ctrl && (code === 'KeyS' || key === 's')) { e.preventDefault(); FC.saveFile(); return; }
+  if (ctrl && (code === 'KeyE' || key === 'e')) { e.preventDefault(); FC.exportPNG(); return; }
+  if (ctrl && (code === 'KeyO' || key === 'o')) { e.preventDefault(); FC.openFile(); return; }
+  if (ctrl && (code === 'KeyN' || key === 'n')) { e.preventDefault(); FC.newFile(); return; }
+  if (ctrl && (code === 'KeyH' || key === 'h')) { e.preventDefault(); FC.searchReplaceDialog(); return; }
   if (ctrl && (e.key === '=' || e.key === '+')) { e.preventDefault(); FC.zoomIn(); return; }
   if (ctrl && e.key === '-') { e.preventDefault(); FC.zoomOut(); return; }
-  if (ctrl && e.key === '0') { e.preventDefault(); FC.zoomReset(); return; }
+  if (ctrl && (code === 'Digit0' || e.key === '0')) { e.preventDefault(); FC.zoomReset(); return; }
 
-  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); FC.deleteSelected(); return; }
+  if (e.key === 'Delete' || e.key === 'Backspace' || code === 'Delete') { e.preventDefault(); FC.deleteSelected(); return; }
 
   // Arrow keys
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && FC.state.selectedIds.length > 0) {
@@ -2111,10 +2164,10 @@ FC.onKeyDown = function(e) {
 
   // Tool shortcuts
   if (!ctrl) {
-    if (e.key === 'v' || e.key === 'V') { FC.setTool('select'); return; }
-    if (e.key === 'h' || e.key === 'H') { FC.setTool('pan'); return; }
-    if (e.key === 'l' || e.key === 'L') { FC.setTool('connector'); return; }
-    if (e.key === 't' || e.key === 'T') { FC.setTool('text'); return; }
+    if (code === 'KeyV' || key === 'v') { FC.setTool('select'); return; }
+    if (code === 'KeyH' || key === 'h') { FC.setTool('pan'); return; }
+    if (code === 'KeyL' || key === 'l') { FC.setTool('connector'); return; }
+    if (code === 'KeyT' || key === 't') { FC.setTool('text'); return; }
     if (e.key === 'Escape') {
       FC.state.selectedIds = [];
       FC.state.isConnecting = false;
@@ -2313,7 +2366,7 @@ FC.deleteSelected = function() {
   // Delete shapes and their connectors
   FC.state.shapes = FC.state.shapes.filter(s => !shapeIds.includes(s.id));
   FC.state.connectors = FC.state.connectors.filter(c =>
-    !connIds.includes('conn_' + c.id) && !connIds.includes(c.id) &&
+    !connIds.includes(c.id) &&
     !shapeIds.includes(c.fromId) && !shapeIds.includes(c.toId)
   );
 
@@ -2324,9 +2377,20 @@ FC.deleteSelected = function() {
 
 FC.copySelected = function() {
   const shapeIds = FC.state.selectedIds.filter(id => !id.startsWith('conn_'));
-  if (shapeIds.length === 0) return;
+  const connIds = FC.state.selectedIds.filter(id => id.startsWith('conn_'));
+  
+  // Collect shapes
   const shapes = shapeIds.map(id => FC.getShape(id)).filter(Boolean);
-  const conns = FC.state.connectors.filter(c => shapeIds.includes(c.fromId) && shapeIds.includes(c.toId));
+  
+  // Collect connectors: those explicitly selected OR those connecting selected shapes
+  const connSet = new Set();
+  FC.state.connectors.forEach(c => {
+    if (connIds.includes(c.id)) connSet.add(c);
+    if (shapeIds.includes(c.fromId) && shapeIds.includes(c.toId)) connSet.add(c);
+  });
+  const conns = Array.from(connSet);
+  
+  if (shapes.length === 0 && conns.length === 0) return;
   FC.state.clipboard = { shapes: JSON.parse(JSON.stringify(shapes)), connectors: JSON.parse(JSON.stringify(conns)) };
 };
 
@@ -2340,6 +2404,7 @@ FC.paste = function() {
   FC.pushUndo();
   const idMap = {};
   const newShapes = [];
+  const newConnIds = [];
   FC.state.clipboard.shapes.forEach(s => {
     const newId = 'shape_' + FC.state.nextId++;
     idMap[s.id] = newId;
@@ -2348,12 +2413,34 @@ FC.paste = function() {
     newShapes.push(ns);
   });
   FC.state.clipboard.connectors.forEach(c => {
-    if (idMap[c.fromId] && idMap[c.toId]) {
-      const nc = { ...JSON.parse(JSON.stringify(c)), id: 'conn_' + FC.state.nextId++, fromId: idMap[c.fromId], toId: idMap[c.toId] };
+    const fromId = idMap[c.fromId] || c.fromId;
+    const toId = idMap[c.toId] || c.toId;
+    if (fromId && toId) {
+      const newConnId = 'conn_' + FC.state.nextId++;
+      const nc = { ...JSON.parse(JSON.stringify(c)), id: newConnId, fromId, toId };
+      // Offset waypoints too
+      if (nc.waypoints) {
+        nc.waypoints = nc.waypoints.map(wp => [wp[0] + 20, wp[1] + 20]);
+      } else if (!idMap[c.fromId] || !idMap[c.toId]) {
+        // Standalone connector pasted without both attached shapes: add offset waypoint so it is visually distinct
+        const pts = FC.getConnectorPoints(c);
+        if (pts && pts.length >= 2) {
+          const mx = (pts[0][0] + pts[pts.length - 1][0]) / 2 + 25;
+          const my = (pts[0][1] + pts[pts.length - 1][1]) / 2 + 25;
+          nc.waypoints = [[mx, my]];
+        }
+      }
       FC.state.connectors.push(nc);
+      newConnIds.push(nc.id);
     }
   });
-  FC.state.selectedIds = newShapes.map(s => s.id);
+  FC.state.selectedIds = [...newShapes.map(s => s.id), ...newConnIds];
+  // Update clipboard offsets for successive paste
+  FC.state.clipboard = JSON.parse(JSON.stringify(FC.state.clipboard));
+  FC.state.clipboard.shapes.forEach(s => { s.x += 20; s.y += 20; });
+  FC.state.clipboard.connectors.forEach(c => {
+    if (c.waypoints) c.waypoints = c.waypoints.map(wp => [wp[0] + 20, wp[1] + 20]);
+  });
   FC.render();
   FC.updateStatusBar();
 };
@@ -2495,7 +2582,76 @@ FC.getConnectorPoints = function(c) {
   if (!fromShape || !toShape) return null;
   const [fx, fy] = FC.getConnectionPointPos(fromShape, c.fromSide);
   const [tx, ty] = FC.getConnectionPointPos(toShape, c.toSide);
+  
+  // If user-defined waypoints exist, use them
+  if (c.waypoints && c.waypoints.length > 0) {
+    if (c.lineType === 'straight' || c.lineType === 'curve') {
+      const pts = [[fx, fy]];
+      c.waypoints.forEach((wp, i) => pts.push([wp[0], wp[1], i]));
+      pts.push([tx, ty, c.waypoints.length]);
+      return pts;
+    } else {
+      // Orthogonal routing through waypoints (Visio-style pathing)
+      const pts = [[fx, fy, 0]];
+      const wps = [...c.waypoints, [tx, ty]];
+      for (let i = 0; i < wps.length; i++) {
+        const p1 = pts[pts.length - 1];
+        const p2 = wps[i];
+        
+        let goVertFirst = false;
+        if (i === 0) goVertFirst = (c.fromSide === 'top' || c.fromSide === 'bottom');
+        else if (i === wps.length - 1) goVertFirst = (c.toSide === 'left' || c.toSide === 'right');
+        else goVertFirst = Math.abs(p2[1] - p1[1]) > Math.abs(p2[0] - p1[0]);
+        
+        if (goVertFirst) {
+          if (p2[1] !== p1[1]) pts.push([p1[0], p2[1], i]);
+          pts.push([p2[0], p2[1], i]);
+        } else {
+          if (p2[0] !== p1[0]) pts.push([p2[0], p1[1], i]);
+          pts.push([p2[0], p2[1], i]);
+        }
+      }
+      return pts;
+    }
+  }
+  
   return FC.calcConnectorPath(fx, fy, c.fromSide, tx, ty, c.toSide, c.lineType);
+};
+
+FC.hitTestWaypoint = function(x, y) {
+  const selId = FC.state.selectedIds.find(id => id.startsWith('conn_'));
+  if (!selId) return null;
+  const conn = FC.state.connectors.find(c => c.id === selId);
+  if (!conn) return null;
+  
+  const points = FC.getConnectorPoints(conn);
+  if (!points || points.length < 3) return null;
+  
+  // Check waypoints (skip first and last which are endpoints)
+  if (conn.waypoints && conn.waypoints.length > 0) {
+    for (let i = 0; i < conn.waypoints.length; i++) {
+      const [wx, wy] = conn.waypoints[i];
+      if (Math.hypot(x - wx, y - wy) < 8) {
+        return { connId: conn.id, wpIndex: i, type: 'waypoint' };
+      }
+    }
+  }
+  
+  // Check midpoints of segments (for adding new waypoints)
+  for (let i = 0; i < points.length - 1; i++) {
+    const mx = (points[i][0] + points[i+1][0]) / 2;
+    const my = (points[i][1] + points[i+1][1]) / 2;
+    if (Math.hypot(x - mx, y - my) < 8) {
+      // Add new waypoint at this midpoint
+      if (!conn.waypoints) conn.waypoints = [];
+      let insertAt = points[i+1][2];
+      if (insertAt === undefined) insertAt = 0;
+      conn.waypoints.splice(insertAt, 0, [mx, my]);
+      return { connId: conn.id, wpIndex: insertAt, type: 'new' };
+    }
+  }
+  
+  return null;
 };
 
 FC.calcConnectorPath = function(fx, fy, fSide, tx, ty, tSide, lineType) {
@@ -2685,19 +2841,24 @@ FC.renderShapes = function() {
       const fo = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
       const pad = 6;
       fo.setAttribute('x', pad);
-      fo.setAttribute('y', pad);
+      fo.setAttribute('y', 0);
       fo.setAttribute('width', s.w - pad * 2);
-      fo.setAttribute('height', s.h - pad * 2);
+      fo.setAttribute('height', s.h);
 
       const div = document.createElement('div');
       div.style.cssText = `
-        width: 100%; height: 100%; display: flex; align-items: center; justify-content: ${s.textAlign === 'left' ? 'flex-start' : s.textAlign === 'right' ? 'flex-end' : 'center'};
-        text-align: ${s.textAlign}; color: ${s.textColor}; font-size: ${s.fontSize}px;
-        font-weight: ${s.fontBold ? 'bold' : 'normal'}; font-style: ${s.fontItalic ? 'italic' : 'normal'};
-        font-family: ${s.fontFamily || 'var(--font)'}; overflow: hidden; word-wrap: break-word; line-height: 1.3;
-        pointer-events: none; user-select: none; padding: 2px;
+        box-sizing: border-box; width: 100%; height: 100%; display: table; pointer-events: none; user-select: none;
       `;
-      div.textContent = s.text;
+      const inner = document.createElement('div');
+      inner.style.cssText = `
+        display: table-cell; vertical-align: middle; text-align: ${s.textAlign};
+        color: ${s.textColor}; font-size: ${s.fontSize}px;
+        font-weight: ${s.fontBold ? 'bold' : 'normal'}; font-style: ${s.fontItalic ? 'italic' : 'normal'};
+        font-family: ${s.fontFamily || 'var(--font)'};
+        white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.4; padding: 4px;
+      `;
+      inner.textContent = s.text;
+      div.appendChild(inner);
       fo.appendChild(div);
       g.appendChild(fo);
     }
@@ -2714,13 +2875,13 @@ FC.getRoundedRectPath = function(w, h, r) {
 FC.renderConnectors = function() {
   FC.layerConnectors.innerHTML = '';
   FC.state.connectors.forEach(c => {
-    const points = FC.getConnectorPoints(c);
-    if (!points) return;
+    const pts = FC.getConnectorPoints(c);
+    if (!pts || pts.length < 2) return;
 
-    const pathD = FC.pointsToSVGPath(points, c.lineType);
+    const pathD = FC.pointsToSVGPath(pts, c.lineType);
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('d', pathD);
-    path.setAttribute('class', 'connector-line' + (FC.state.selectedIds.includes('conn_' + c.id) || FC.state.selectedIds.includes(c.id) ? ' selected' : ''));
+    path.setAttribute('class', 'connector-line' + (FC.state.selectedIds.includes(c.id) ? ' selected' : ''));
     path.setAttribute('stroke', c.color);
     path.setAttribute('stroke-width', c.width);
     path.setAttribute('fill', 'none');
@@ -2771,6 +2932,7 @@ FC.renderHandles = function() {
   if (FC.state.selectedIds.length === 0) return;
 
   const shapeIds = FC.state.selectedIds.filter(id => !id.startsWith('conn_'));
+  const connSelIds = FC.state.selectedIds.filter(id => id.startsWith('conn_'));
 
   shapeIds.forEach(id => {
     const s = FC.getShape(id);
@@ -2806,6 +2968,59 @@ FC.renderHandles = function() {
       });
     }
   }
+
+  // Draw waypoint handles on selected connectors
+  connSelIds.forEach(selId => {
+    const conn = FC.state.connectors.find(c => c.id === selId);
+    if (!conn) return;
+    
+    const points = FC.getConnectorPoints(conn);
+    if (!points || points.length < 2) return;
+    
+    // Draw existing waypoint handles (draggable squares)
+    if (conn.waypoints && conn.waypoints.length > 0) {
+      conn.waypoints.forEach((wp, idx) => {
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', wp[0] - 5);
+        rect.setAttribute('y', wp[1] - 5);
+        rect.setAttribute('width', 10);
+        rect.setAttribute('height', 10);
+        rect.setAttribute('rx', 2);
+        rect.setAttribute('class', 'waypoint-handle');
+        rect.setAttribute('vector-effect', 'non-scaling-stroke');
+        rect.dataset.wpIndex = idx;
+        rect.dataset.connId = conn.id;
+        FC.layerHandles.appendChild(rect);
+      });
+    }
+    
+    // Draw midpoint indicators (small diamonds) on each segment for adding new waypoints
+    for (let i = 0; i < points.length - 1; i++) {
+      const mx = (points[i][0] + points[i+1][0]) / 2;
+      const my = (points[i][1] + points[i+1][1]) / 2;
+      
+      // Skip if too close to existing waypoints
+      let tooClose = false;
+      if (conn.waypoints) {
+        for (const wp of conn.waypoints) {
+          if (Math.hypot(mx - wp[0], my - wp[1]) < 15) { tooClose = true; break; }
+        }
+      }
+      if (tooClose) continue;
+      
+      const diamond = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      diamond.setAttribute('cx', mx);
+      diamond.setAttribute('cy', my);
+      diamond.setAttribute('r', 4);
+      diamond.setAttribute('fill', 'rgba(37, 99, 235, 0.3)');
+      diamond.setAttribute('stroke', '#2563eb');
+      diamond.setAttribute('stroke-width', '1');
+      diamond.setAttribute('vector-effect', 'non-scaling-stroke');
+      diamond.setAttribute('cursor', 'move');
+      diamond.setAttribute('opacity', '0.6');
+      FC.layerHandles.appendChild(diamond);
+    }
+  });
 };
 
 FC.renderSelection = function() {
@@ -2855,25 +3070,38 @@ FC.renderDraftConnector = function() {
 // ===== TEXT EDITING =====
 FC.startTextEdit = function(shape) {
   FC.finishTextEdit();
-  const screenPos = FC.canvasToScreen(shape.x, shape.y);
   const rect = FC.svg.getBoundingClientRect();
 
   const container = document.createElement('div');
   container.className = 'text-editor-container';
+  container.style.position = 'absolute';
   container.style.left = ((shape.x - FC.state.panX) * FC.state.zoom + rect.left) + 'px';
   container.style.top = ((shape.y - FC.state.panY) * FC.state.zoom + rect.top) + 'px';
+  container.style.zIndex = '1000';
 
   const ta = document.createElement('textarea');
   ta.value = shape.text || '';
+  ta.placeholder = 'Type here...';
   ta.style.width = (shape.w * FC.state.zoom) + 'px';
   ta.style.height = (shape.h * FC.state.zoom) + 'px';
+  ta.style.boxSizing = 'border-box';
   ta.style.fontSize = (shape.fontSize * FC.state.zoom) + 'px';
-  ta.style.color = shape.textColor;
+  ta.style.color = '#000000'; // Force visibility
+  ta.style.backgroundColor = 'rgba(255, 255, 255, 0.95)'; // Force visibility
   ta.style.fontWeight = shape.fontBold ? 'bold' : 'normal';
   ta.style.fontStyle = shape.fontItalic ? 'italic' : 'normal';
   ta.style.fontFamily = shape.fontFamily || 'var(--font)';
   ta.style.textAlign = shape.textAlign;
+  ta.style.lineHeight = '1.4';
+  ta.style.whiteSpace = 'pre-wrap';
+  ta.style.wordWrap = 'break-word';
+  ta.style.overflowWrap = 'break-word';
+  ta.style.padding = '8px';
+  ta.style.outline = '2px solid var(--primary)';
+  ta.style.borderRadius = '4px';
+  ta.style.border = 'none';
 
+  // Save on blur
   ta.addEventListener('blur', () => {
     FC.pushUndo();
     shape.text = ta.value;
@@ -2881,17 +3109,20 @@ FC.startTextEdit = function(shape) {
     FC.render();
   });
 
+  // Allow Enter for new lines (Shift+Enter or just Enter), Escape to finish
   ta.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { ta.blur(); }
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ta.blur(); }
+    // Allow Enter to create new lines (no longer blocks Enter)
     e.stopPropagation();
   });
 
   container.appendChild(ta);
   document.body.appendChild(container);
   FC.activeTextEditor = container;
-  ta.focus();
-  ta.select();
+  setTimeout(() => {
+    ta.focus();
+    ta.select();
+  }, 10);
 };
 
 FC.finishTextEdit = function() {
