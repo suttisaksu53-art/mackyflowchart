@@ -939,6 +939,8 @@ body {
       <div class="menu-dropdown-item" onclick="FC.duplicateSelected()">Duplicate <span class="shortcut">Ctrl+D</span></div>
       <div class="menu-separator"></div>
       <div class="menu-dropdown-item" onclick="FC.selectAll()">Select All <span class="shortcut">Ctrl+A</span></div>
+      <div class="menu-dropdown-item" onclick="FC.groupSelected()">Group <span class="shortcut">Ctrl+G</span></div>
+      <div class="menu-dropdown-item" onclick="FC.ungroupSelected()">Ungroup (Split) <span class="shortcut">Ctrl+Shift+G</span></div>
       <div class="menu-dropdown-item" onclick="FC.deleteSelected()">Delete <span class="shortcut">Del</span></div>
       <div class="menu-separator"></div>
       <div class="menu-dropdown-item" onclick="FC.searchReplaceDialog()">Find & Replace <span class="shortcut">Ctrl+H</span></div>
@@ -1047,6 +1049,12 @@ body {
   </button>
   <button class="tool-btn" data-tooltip="Send to Back" onclick="FC.sendToBack()">
     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="5" y="5" width="10" height="10" rx="1" opacity="0.3"/><rect x="1" y="1" width="7" height="7" rx="1"/></svg>
+  </button>
+  <button class="tool-btn" data-tooltip="Group (Ctrl+G)" onclick="FC.groupSelected()">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M7 3h3v3M9 13H6V10" stroke="currentColor" stroke-dasharray="2 1" fill="none"/></svg>
+  </button>
+  <button class="tool-btn" data-tooltip="Ungroup / Split (Ctrl+Shift+G)" onclick="FC.ungroupSelected()">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="5" height="5" rx="1"/><rect x="10" y="10" width="5" height="5" rx="1"/><path d="M7 4l2 2M9 4l-2 2" stroke="currentColor" stroke-width="1.5"/></svg>
   </button>
 
   <div class="tool-sep"></div>
@@ -1709,7 +1717,7 @@ FC.onCanvasMouseDown = function(e) {
   if (FC.state.lastClickTime && now - FC.state.lastClickTime < 350) {
     if (Math.hypot(e.clientX - FC.state.lastClickPos.x, e.clientY - FC.state.lastClickPos.y) < 10) {
       FC.state.lastClickTime = 0;
-      e.preventDefault(); // Prevent browser from stealing focus back from textarea
+      e.preventDefault();
       FC.onCanvasDblClick(e);
       return;
     }
@@ -1795,7 +1803,8 @@ FC.onCanvasMouseDown = function(e) {
     if (hit) {
       FC.startTextEdit(hit);
     } else {
-      FC.addShape('textbox', FC.snapValue(pt.x - 60), FC.snapValue(pt.y - 20), 120, 40);
+      const shape = FC.addShape('textbox', FC.snapValue(pt.x - 60), FC.snapValue(pt.y - 20), 120, 40);
+      FC.startTextEdit(shape);
     }
     return;
   }
@@ -1825,12 +1834,18 @@ FC.onCanvasMouseDown = function(e) {
         return;
       }
 
+      const groupShapeIds = hit.groupId ? FC.state.shapes.filter(s => s.groupId === hit.groupId).map(s => s.id) : [hit.id];
       if (e.shiftKey) {
-        const idx = FC.state.selectedIds.indexOf(hit.id);
-        if (idx >= 0) FC.state.selectedIds.splice(idx, 1);
-        else FC.state.selectedIds.push(hit.id);
-      } else if (!FC.state.selectedIds.includes(hit.id)) {
-        FC.state.selectedIds = [hit.id];
+        const allSelected = groupShapeIds.every(id => FC.state.selectedIds.includes(id));
+        if (allSelected) {
+          FC.state.selectedIds = FC.state.selectedIds.filter(id => !groupShapeIds.includes(id));
+        } else {
+          groupShapeIds.forEach(id => {
+            if (!FC.state.selectedIds.includes(id)) FC.state.selectedIds.push(id);
+          });
+        }
+      } else if (!groupShapeIds.every(id => FC.state.selectedIds.includes(id))) {
+        FC.state.selectedIds = FC.expandGroupSelection(groupShapeIds);
       }
       FC.state.isDragging = true;
       FC.state.dragStart = { x: pt.x, y: pt.y };
@@ -1897,9 +1912,17 @@ FC.onCanvasMouseMove = function(e) {
     const dy = pt.y - rs.y;
     const h = FC.state.resizeHandle;
     if (h.includes('e')) { s.w = Math.max(30, FC.snapValue(rs.sw + dx)); }
-    if (h.includes('w')) { s.x = FC.snapValue(rs.sx + dx); s.w = Math.max(30, FC.snapValue(rs.sw - dx)); }
+    if (h.includes('w')) { 
+      const newW = Math.max(30, FC.snapValue(rs.sw - dx));
+      s.x = rs.sx + rs.sw - newW;
+      s.w = newW;
+    }
     if (h.includes('s')) { s.h = Math.max(20, FC.snapValue(rs.sh + dy)); }
-    if (h.includes('n')) { s.y = FC.snapValue(rs.sy + dy); s.h = Math.max(20, FC.snapValue(rs.sh - dy)); }
+    if (h.includes('n')) { 
+      const newH = Math.max(20, FC.snapValue(rs.sh - dy));
+      s.y = rs.sy + rs.sh - newH;
+      s.h = newH;
+    }
     if (e.shiftKey) {
       const ratio = rs.sw / rs.sh;
       if (h === 'se' || h === 'nw' || h === 'ne' || h === 'sw') {
@@ -2013,7 +2036,6 @@ FC.onCanvasMouseUp = function(e) {
 FC.onCanvasDblClick = function(e) {
   const pt = FC.screenToCanvas(e.clientX, e.clientY);
 
-  // Check for double-clicking a waypoint to delete it
   const selConnId = FC.state.selectedIds.find(id => id.startsWith('conn_'));
   if (selConnId) {
     const wpHit = FC.hitTestWaypoint(pt.x, pt.y);
@@ -2072,11 +2094,22 @@ FC.onCanvasContext = function(e) {
   let items = [];
   if (hit) {
     if (!FC.state.selectedIds.includes(hit.id)) FC.state.selectedIds = [hit.id];
+    FC.state.selectedIds = FC.expandGroupSelection(FC.state.selectedIds);
+
+    const shapeSelCount = FC.state.selectedIds.filter(id => !id.startsWith('conn_')).length;
+    const hasGroup = FC.state.selectedIds.some(id => {
+      const s = FC.getShape(id);
+      return s && s.groupId;
+    });
+
     items = [
       { label: 'Cut', shortcut: 'Ctrl+X', action: () => FC.cutSelected() },
       { label: 'Copy', shortcut: 'Ctrl+C', action: () => FC.copySelected() },
       { label: 'Paste', shortcut: 'Ctrl+V', action: () => FC.paste() },
       { label: 'Duplicate', shortcut: 'Ctrl+D', action: () => FC.duplicateSelected() },
+      null,
+      ...(shapeSelCount >= 2 ? [{ label: 'Group', shortcut: 'Ctrl+G', action: () => FC.groupSelected() }] : []),
+      ...(hasGroup ? [{ label: 'Ungroup (Split)', shortcut: 'Ctrl+Shift+G', action: () => FC.ungroupSelected() }] : []),
       null,
       { label: 'Edit Text', action: () => FC.startTextEdit(hit) },
       null,
@@ -2148,6 +2181,12 @@ FC.onKeyDown = function(e) {
   if (ctrl && (code === 'KeyV' || key === 'v')) { e.preventDefault(); FC.paste(); return; }
   if (ctrl && (code === 'KeyX' || key === 'x')) { e.preventDefault(); FC.cutSelected(); return; }
   if (ctrl && (code === 'KeyD' || key === 'd')) { e.preventDefault(); FC.duplicateSelected(); return; }
+  if (ctrl && (code === 'KeyG' || key === 'g')) {
+    e.preventDefault();
+    if (e.shiftKey) FC.ungroupSelected();
+    else FC.groupSelected();
+    return;
+  }
   if (ctrl && (code === 'KeyA' || key === 'a')) { e.preventDefault(); FC.selectAll(); return; }
   if (ctrl && (code === 'KeyS' || key === 's')) { e.preventDefault(); FC.saveFile(); return; }
   if (ctrl && (code === 'KeyE' || key === 'e')) { e.preventDefault(); FC.exportPNG(); return; }
@@ -2471,6 +2510,54 @@ FC.selectAll = function() {
   FC.render();
 };
 
+FC.expandGroupSelection = function(ids) {
+  if (!ids || ids.length === 0) return [];
+  const set = new Set(ids);
+  ids.forEach(id => {
+    if (id.startsWith('conn_')) return;
+    const s = FC.getShape(id);
+    if (s && s.groupId) {
+      FC.state.shapes.forEach(other => {
+        if (other.groupId === s.groupId) set.add(other.id);
+      });
+    }
+  });
+  return Array.from(set);
+};
+
+FC.groupSelected = function() {
+  const shapeIds = FC.state.selectedIds.filter(id => !id.startsWith('conn_'));
+  if (shapeIds.length < 2) return;
+  FC.pushUndo();
+  const groupId = 'group_' + FC.state.nextId++;
+  shapeIds.forEach(id => {
+    const s = FC.getShape(id);
+    if (s) s.groupId = groupId;
+  });
+  FC.state.selectedIds = FC.expandGroupSelection(shapeIds);
+  FC.render();
+  FC.updateStatusBar();
+};
+
+FC.ungroupSelected = function() {
+  const shapeIds = FC.state.selectedIds.filter(id => !id.startsWith('conn_'));
+  if (shapeIds.length === 0) return;
+  const groupIds = new Set();
+  shapeIds.forEach(id => {
+    const s = FC.getShape(id);
+    if (s && s.groupId) groupIds.add(s.groupId);
+  });
+  if (groupIds.size === 0) return;
+  FC.pushUndo();
+  FC.state.shapes.forEach(s => {
+    if (s.groupId && groupIds.has(s.groupId)) {
+      delete s.groupId;
+    }
+  });
+  FC.render();
+  FC.updateStatusBar();
+};
+
 FC.bringToFront = function() {
   const ids = FC.state.selectedIds.filter(id => !id.startsWith('conn_'));
   if (ids.length === 0) return;
@@ -2748,22 +2835,30 @@ FC.calcConnectorPath = function(fx, fy, fSide, tx, ty, tSide, lineType) {
 FC.pointsToSVGPath = function(points, lineType) {
   if (!points || points.length < 2) return '';
   if (lineType === 'curve') {
-    const [fx, fy] = points[0];
-    const [tx, ty] = points[points.length - 1];
-    const mx = (fx + tx) / 2;
-    const my = (fy + ty) / 2;
-    // Smooth bezier
-    const dx = tx - fx;
-    const dy = ty - fy;
-    let c1x, c1y, c2x, c2y;
-    if (Math.abs(dx) > Math.abs(dy)) {
-      c1x = fx + dx * 0.5; c1y = fy;
-      c2x = tx - dx * 0.5; c2y = ty;
+    if (points.length <= 2) {
+      const [fx, fy] = points[0];
+      const [tx, ty] = points[points.length - 1];
+      const dx = tx - fx;
+      const dy = ty - fy;
+      let c1x, c1y, c2x, c2y;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        c1x = fx + dx * 0.5; c1y = fy;
+        c2x = tx - dx * 0.5; c2y = ty;
+      } else {
+        c1x = fx; c1y = fy + dy * 0.5;
+        c2x = tx; c2y = ty - dy * 0.5;
+      }
+      return `M${fx},${fy} C${c1x},${c1y} ${c2x},${c2y} ${tx},${ty}`;
     } else {
-      c1x = fx; c1y = fy + dy * 0.5;
-      c2x = tx; c2y = ty - dy * 0.5;
+      let d = `M${points[0][0]},${points[0][1]}`;
+      for (let i = 1; i < points.length - 1; i++) {
+        const xc = (points[i][0] + points[i+1][0]) / 2;
+        const yc = (points[i][1] + points[i+1][1]) / 2;
+        d += ` Q${points[i][0]},${points[i][1]} ${xc},${yc}`;
+      }
+      d += ` T${points[points.length-1][0]},${points[points.length-1][1]}`;
+      return d;
     }
-    return `M${fx},${fy} C${c1x},${c1y} ${c2x},${c2y} ${tx},${ty}`;
   }
   if (lineType === 'rounded' && points.length > 2) {
     let d = `M${points[0][0]},${points[0][1]}`;
@@ -2820,6 +2915,7 @@ FC.renderShapes = function() {
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     g.setAttribute('class', 'shape-node' + (FC.state.selectedIds.includes(s.id) ? ' selected' : ''));
     g.setAttribute('transform', `translate(${s.x}, ${s.y})`);
+    g.setAttribute('data-shape-id', s.id);
     g.dataset.shapeId = s.id;
     g.style.opacity = s.opacity;
 
@@ -2861,11 +2957,12 @@ FC.renderShapes = function() {
       fo.setAttribute('width', s.w - pad * 2);
       fo.setAttribute('height', s.h);
 
-      const div = document.createElement('div');
+      const div = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+      div.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
       div.style.cssText = `
         box-sizing: border-box; width: 100%; height: 100%; display: table; pointer-events: none; user-select: none;
       `;
-      const inner = document.createElement('div');
+      const inner = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
       inner.style.cssText = `
         display: table-cell; vertical-align: middle; text-align: ${s.textAlign};
         color: ${s.textColor}; font-size: ${s.fontSize}px;
@@ -2912,9 +3009,9 @@ FC.renderConnectors = function() {
 
     // Label
     if (c.label) {
-      const midIdx = Math.floor(points.length / 2);
-      const p1 = points[Math.max(0, midIdx - 1)];
-      const p2 = points[Math.min(points.length - 1, midIdx)];
+      const midIdx = Math.floor(pts.length / 2);
+      const p1 = pts[Math.max(0, midIdx - 1)];
+      const p2 = pts[Math.min(pts.length - 1, midIdx)];
       const lx = (p1[0] + p2[0]) / 2;
       const ly = (p1[1] + p2[1]) / 2;
 
@@ -3177,6 +3274,29 @@ FC.redo = function() {
   FC.updateStatusBar();
 };
 
+FC.autoSizeSelected = function() {
+  const shapeIds = FC.state.selectedIds.filter(id => !id.startsWith('conn_'));
+  if (shapeIds.length === 0) return;
+  FC.pushUndo();
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  shapeIds.forEach(id => {
+    const s = FC.getShape(id);
+    if (!s || !s.text) return;
+    ctx.font = `${s.fontItalic ? 'italic ' : ''}${s.fontBold ? 'bold ' : ''}${s.fontSize}px ${s.fontFamily}`;
+    let maxW = 0;
+    const lines = s.text.split('\n');
+    lines.forEach(line => {
+      const w = ctx.measureText(line).width;
+      if (w > maxW) maxW = w;
+    });
+    s.w = Math.max(80, Math.ceil(maxW + 40));
+    s.h = Math.max(40, Math.ceil(lines.length * (s.fontSize * 1.5) + 30));
+  });
+  FC.render();
+  FC.updatePropsPanel();
+};
+
 // ===== PROPERTIES PANEL =====
 FC.updatePropsPanel = function() {
   const panel = document.getElementById('props-content');
@@ -3196,6 +3316,7 @@ FC.updatePropsPanel = function() {
         <div class="props-row"><label>Y</label><input type="number" value="${Math.round(s.y)}" onchange="FC.setProp('${s.id}','y',+this.value)"></div>
         <div class="props-row"><label>W</label><input type="number" value="${Math.round(s.w)}" onchange="FC.setProp('${s.id}','w',+this.value)"></div>
         <div class="props-row"><label>H</label><input type="number" value="${Math.round(s.h)}" onchange="FC.setProp('${s.id}','h',+this.value)"></div>
+        <div class="props-row"><button class="btn" style="width:100%; margin-top:5px;" onclick="FC.autoSizeSelected()">Auto Size to Text</button></div>
       </div>
       <div class="props-section">
         <div class="props-title">Fill</div>
@@ -3292,10 +3413,38 @@ FC.updatePropsPanel = function() {
       </div>
     `;
     if (shapeIds.length > 1) {
+      const s = FC.getShape(shapeIds[0]);
       html += `<div class="props-section"><div class="props-title">${shapeIds.length} shapes selected</div>
         <div class="props-row"><button class="btn" onclick="FC.alignSelected('left')">Align Left</button><button class="btn" onclick="FC.alignSelected('center')">Center</button><button class="btn" onclick="FC.alignSelected('right')">Right</button></div>
         <div class="props-row"><button class="btn" onclick="FC.alignSelected('top')">Top</button><button class="btn" onclick="FC.alignSelected('middle')">Middle</button><button class="btn" onclick="FC.alignSelected('bottom')">Bottom</button></div>
         <div class="props-row"><button class="btn" onclick="FC.distribute('horizontal')">Dist H</button><button class="btn" onclick="FC.distribute('vertical')">Dist V</button></div>
+        <div class="props-row"><button class="btn" style="width:100%; margin-top:5px;" onclick="FC.autoSizeSelected()">Auto Size to Text</button></div>
+      </div>
+      <div class="props-section">
+        <div class="props-title">Text (Multiple Shapes)</div>
+        <div class="props-row"><label>Font</label><select onchange="FC.setMultiProp('fontFamily',this.value)">
+          <option value="'Segoe UI', sans-serif" ${s.fontFamily==="'Segoe UI', sans-serif"?'selected':''}>Segoe UI (System)</option>
+          <option value="'Inter', sans-serif" ${s.fontFamily==="'Inter', sans-serif"?'selected':''}>Inter</option>
+          <option value="'Roboto', sans-serif" ${s.fontFamily==="'Roboto', sans-serif"?'selected':''}>Roboto</option>
+          <option value="'Poppins', sans-serif" ${s.fontFamily==="'Poppins', sans-serif"?'selected':''}>Poppins</option>
+          <option value="'Montserrat', sans-serif" ${s.fontFamily==="'Montserrat', sans-serif"?'selected':''}>Montserrat</option>
+          <option value="'Playfair Display', serif" ${s.fontFamily==="'Playfair Display', serif"?'selected':''}>Playfair Display</option>
+          <option value="'Sarabun', sans-serif" ${s.fontFamily==="'Sarabun', sans-serif"?'selected':''}>Sarabun (Thai Formal)</option>
+          <option value="'Kanit', sans-serif" ${s.fontFamily==="'Kanit', sans-serif"?'selected':''}>Kanit (Thai Modern)</option>
+          <option value="'Prompt', sans-serif" ${s.fontFamily==="'Prompt', sans-serif"?'selected':''}>Prompt (Thai Clean)</option>
+          <option value="'Mitr', sans-serif" ${s.fontFamily==="'Mitr', sans-serif"?'selected':''}>Mitr (Thai Rounded)</option>
+        </select></div>
+        <div class="props-row"><label>Size</label><input type="number" value="${s.fontSize}" min="8" max="72" onchange="FC.setMultiProp('fontSize',+this.value)"></div>
+        <div class="props-row"><label>Color</label><input type="color" value="${s.textColor}" onchange="FC.setMultiProp('textColor',this.value)"></div>
+        <div class="props-row"><label>Align</label><select onchange="FC.setMultiProp('textAlign',this.value)">
+          <option value="left" ${s.textAlign==='left'?'selected':''}>Left</option>
+          <option value="center" ${s.textAlign==='center'?'selected':''}>Center</option>
+          <option value="right" ${s.textAlign==='right'?'selected':''}>Right</option>
+        </select></div>
+        <div class="props-row">
+          <button class="props-btn ${s.fontBold?'active':''}" onclick="FC.setMultiProp('fontBold',!${s.fontBold})"><b>B</b></button>
+          <button class="props-btn ${s.fontItalic?'active':''}" onclick="FC.setMultiProp('fontItalic',!${s.fontItalic})"><i>I</i></button>
+        </div>
       </div>`;
     }
     panel.innerHTML = html;
@@ -3320,6 +3469,17 @@ FC.setProp = function(id, key, val) {
   if (!s) return;
   FC.pushUndo();
   s[key] = val;
+  FC.render();
+};
+
+FC.setMultiProp = function(key, val) {
+  const shapeIds = FC.state.selectedIds.filter(id => !id.startsWith('conn_'));
+  if (shapeIds.length === 0) return;
+  FC.pushUndo();
+  shapeIds.forEach(id => {
+    const s = FC.getShape(id);
+    if (s) s[key] = val;
+  });
   FC.render();
 };
 
@@ -3380,10 +3540,15 @@ FC.showContextMenu = function(x, y, items) {
       const div = document.createElement('div');
       div.className = 'ctx-item';
       div.innerHTML = `${item.label}${item.shortcut ? '<span class="shortcut" style="color:var(--gray-400);font-size:11px">'+item.shortcut+'</span>' : ''}`;
-      div.addEventListener('click', (e) => {
+      div.addEventListener('mousedown', (e) => {
+        e.preventDefault(); // Prevent focus loss
         e.stopPropagation();
         FC.closeContextMenu();
         item.action();
+      });
+      // Also catch click to prevent it from bubbling if needed
+      div.addEventListener('click', (e) => {
+        e.stopPropagation();
       });
       ctx.appendChild(div);
     }
@@ -3511,12 +3676,200 @@ FC.newFile = function() {
   FC.closeAllMenus();
 };
 
+FC.getTextLinesForExport = function(text, shapeWidth, fontSize, fontFamily, fontBold, fontItalic, shapeId) {
+  if (!text) return [];
+  const rawLines = text.split('\n');
+
+  if (shapeId) {
+    try {
+      const originalGroup = FC.svg.querySelector(`g.shape-node[data-shape-id="${shapeId}"]`);
+      const originalInner = originalGroup ? originalGroup.querySelector('foreignObject div div') : null;
+      if (originalInner && originalInner.firstChild) {
+        const textNode = originalInner.firstChild;
+        if (textNode.nodeType === Node.TEXT_NODE) {
+          const domLines = [];
+          const range = document.createRange();
+          let currentLineText = '';
+          let currentY = -1;
+          
+          for (let i = 0; i < textNode.length; i++) {
+            const char = textNode.textContent[i];
+            if (char === '\n') {
+              if (currentLineText) domLines.push(currentLineText.trim());
+              else if (domLines.length === 0 || currentY !== -1) domLines.push('');
+              currentLineText = '';
+              currentY = -1;
+              continue;
+            }
+            range.setStart(textNode, i);
+            range.setEnd(textNode, i + 1);
+            const rects = range.getClientRects();
+            if (rects.length === 0) continue;
+            const rect = rects[0];
+            
+            if (currentY === -1) {
+              currentY = rect.top;
+              currentLineText = char;
+            } else if (Math.abs(rect.top - currentY) > rect.height / 2) {
+              domLines.push(currentLineText.trim());
+              currentLineText = char;
+              currentY = rect.top;
+            } else {
+              currentLineText += char;
+            }
+          }
+          if (currentLineText) domLines.push(currentLineText.trim());
+          
+          return domLines;
+        }
+      }
+    } catch(e) {
+      console.warn("DOM extraction failed, falling back to canvas", e);
+    }
+  }
+
+  const lines = [];
+  const pad = 12;
+  const availWidth = Math.max(20, shapeWidth - pad);
+  
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const weight = fontBold ? 'bold' : 'normal';
+  const style = fontItalic ? 'italic' : 'normal';
+  const family = fontFamily || 'sans-serif, Arial';
+  ctx.font = `${style} ${weight} ${fontSize || 14}px ${family}`;
+
+  const segmenter = window.Intl && window.Intl.Segmenter ? new Intl.Segmenter('th', { granularity: 'word' }) : null;
+
+  rawLines.forEach(rawLine => {
+    let words = [];
+    if (segmenter) {
+      const segments = segmenter.segment(rawLine);
+      words = Array.from(segments).map(s => s.segment);
+    } else {
+      words = rawLine.split(/(\s+)/);
+    }
+    
+    let currentLine = '';
+    words.forEach(word => {
+      const testLine = currentLine + word;
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > availWidth && currentLine.trim().length > 0) {
+        lines.push(currentLine.trim());
+        currentLine = word.trimLeft();
+      } else {
+        currentLine = testLine;
+      }
+    });
+    if (currentLine) {
+      lines.push(currentLine.trim());
+    }
+  });
+  return lines;
+};
+
 // ===== EXPORT =====
+FC.prepareExportSVG = function(minX, minY, cw, ch) {
+  const savedSel = FC.state.selectedIds;
+  FC.state.selectedIds = [];
+  FC.render();
+
+  const svgClone = FC.svg.cloneNode(true);
+  svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  svgClone.setAttribute('viewBox', `${minX} ${minY} ${cw} ${ch}`);
+  svgClone.setAttribute('width', cw);
+  svgClone.setAttribute('height', ch);
+
+  // Remove grid, handles, selection, connection points
+  const gridBg = svgClone.querySelector('#grid-bg');
+  if (gridBg) gridBg.remove();
+  const handles = svgClone.querySelector('#layer-handles');
+  if (handles) handles.remove();
+  const guides = svgClone.querySelector('#layer-guides');
+  if (guides) guides.remove();
+  const selection = svgClone.querySelector('#layer-selection');
+  if (selection) selection.remove();
+
+  svgClone.querySelectorAll('.connection-point').forEach(el => el.remove());
+
+  // Background rect
+  const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  bg.setAttribute('x', minX);
+  bg.setAttribute('y', minY);
+  bg.setAttribute('width', cw);
+  bg.setAttribute('height', ch);
+  bg.setAttribute('fill', FC.state.theme === 'dark' ? '#0f172a' : '#ffffff');
+  svgClone.insertBefore(bg, svgClone.firstChild);
+
+  // Convert foreignObject to standard SVG <text> elements so browser image loading doesn't fail
+  svgClone.querySelectorAll('foreignObject').forEach(fo => {
+    const shapeGroup = fo.closest('g.shape-node');
+    const shapeId = shapeGroup ? (shapeGroup.getAttribute('data-shape-id') || (shapeGroup.dataset && shapeGroup.dataset.shapeId)) : null;
+    const s = shapeId ? FC.getShape(shapeId) : null;
+    if (!s || !s.text) {
+      fo.remove();
+      return;
+    }
+
+    const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    const pad = 6;
+    const align = s.textAlign || 'center';
+    const textX = align === 'center' ? s.w / 2 : align === 'right' ? s.w - pad : pad;
+    const textAnchor = align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start';
+
+    textEl.setAttribute('x', textX);
+    textEl.setAttribute('text-anchor', textAnchor);
+    textEl.setAttribute('fill', s.textColor || (FC.state.theme === 'dark' ? '#f8fafc' : '#000000'));
+    textEl.setAttribute('font-size', (s.fontSize || 14) + 'px');
+    textEl.setAttribute('font-family', s.fontFamily || 'sans-serif, Arial');
+    if (s.fontBold) textEl.setAttribute('font-weight', 'bold');
+    if (s.fontItalic) textEl.setAttribute('font-style', 'italic');
+
+    const fontSize = s.fontSize || 14;
+    const lines = FC.getTextLinesForExport(s.text, s.w, fontSize, s.fontFamily, s.fontBold, s.fontItalic, shapeId);
+    const lineHeight = fontSize * 1.35;
+    const totalHeight = lines.length * lineHeight;
+    const startY = (s.h - totalHeight) / 2 + fontSize * 0.8;
+
+    lines.forEach((lineText, idx) => {
+      const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+      tspan.setAttribute('x', textX);
+      tspan.setAttribute('y', startY + idx * lineHeight);
+      tspan.textContent = lineText;
+      textEl.appendChild(tspan);
+    });
+
+    fo.parentNode.replaceChild(textEl, fo);
+  });
+
+  // Ensure explicit stroke styles on connectors
+  svgClone.querySelectorAll('.connector-line').forEach(el => {
+    if (!el.getAttribute('stroke')) {
+      el.setAttribute('stroke', FC.state.theme === 'dark' ? '#94a3b8' : '#475569');
+    }
+    el.setAttribute('fill', 'none');
+  });
+
+  // Embed essential CSS rules inside <style>
+  const styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+  styleEl.textContent = `
+    .shape-outline { vector-effect: non-scaling-stroke; }
+    .connector-line { fill: none; stroke: ${FC.state.theme === 'dark' ? '#94a3b8' : '#475569'}; stroke-width: 2px; }
+    text { user-select: none; }
+  `;
+  svgClone.insertBefore(styleEl, svgClone.firstChild);
+
+  // Restore selection state
+  FC.state.selectedIds = savedSel;
+  FC.render();
+
+  return svgClone;
+};
+
 FC.exportPNG = function() {
   FC.closeAllMenus();
-  // Get bounding box
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   if (FC.state.shapes.length === 0) { alert('No shapes to export'); return; }
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   FC.state.shapes.forEach(s => {
     minX = Math.min(minX, s.x);
     minY = Math.min(minY, s.y);
@@ -3524,45 +3877,18 @@ FC.exportPNG = function() {
     maxY = Math.max(maxY, s.y + s.h);
   });
   const pad = 40;
+  const rx = minX - pad;
+  const ry = minY - pad;
   const cw = maxX - minX + pad * 2;
   const ch = maxY - minY + pad * 2;
   const scale = 2;
 
-  // Clone SVG
-  const savedSel = FC.state.selectedIds;
-  FC.state.selectedIds = [];
-  FC.render();
-
-  const svgClone = FC.svg.cloneNode(true);
-  svgClone.setAttribute('viewBox', `${minX - pad} ${minY - pad} ${cw} ${ch}`);
+  const svgClone = FC.prepareExportSVG(rx, ry, cw, ch);
   svgClone.setAttribute('width', cw * scale);
   svgClone.setAttribute('height', ch * scale);
 
-  // Remove grid, handles, selection
-  const gridBg = svgClone.querySelector('#grid-bg');
-  if (gridBg) gridBg.style.display = 'none';
-  const handles = svgClone.querySelector('#layer-handles');
-  if (handles) handles.innerHTML = '';
-  const guides = svgClone.querySelector('#layer-guides');
-  if (guides) guides.innerHTML = '';
-  const selection = svgClone.querySelector('#layer-selection');
-  if (selection) selection.innerHTML = '';
-
-  // Add white background
-  const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-  bg.setAttribute('x', minX - pad);
-  bg.setAttribute('y', minY - pad);
-  bg.setAttribute('width', cw);
-  bg.setAttribute('height', ch);
-  bg.setAttribute('fill', 'white');
-  svgClone.insertBefore(bg, svgClone.firstChild);
-
-  // Remove connection points
-  svgClone.querySelectorAll('.connection-point').forEach(el => el.remove());
-
   const svgData = new XMLSerializer().serializeToString(svgClone);
-  const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-  const url = URL.createObjectURL(svgBlob);
+  const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgData);
 
   const img = new Image();
   img.onload = () => {
@@ -3570,23 +3896,44 @@ FC.exportPNG = function() {
     canvas.width = cw * scale;
     canvas.height = ch * scale;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, 0, 0);
-    URL.revokeObjectURL(url);
 
-    canvas.toBlob(blob => {
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'flowchart.png';
-      a.click();
-      URL.revokeObjectURL(a.href);
-    }, 'image/png');
+    try {
+      if (canvas.toBlob) {
+        canvas.toBlob(blob => {
+          if (!blob) {
+            FC.fallbackDownloadPNG(canvas);
+            return;
+          }
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'flowchart.png';
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        }, 'image/png');
+      } else {
+        FC.fallbackDownloadPNG(canvas);
+      }
+    } catch (e) {
+      console.error('Canvas export error:', e);
+      FC.fallbackDownloadPNG(canvas);
+    }
   };
-  img.src = url;
 
-  FC.state.selectedIds = savedSel;
-  FC.render();
+  img.onerror = (err) => {
+    console.error('Export PNG Image load error:', err);
+    alert('Failed to render PNG image. Please try Export as SVG instead.');
+  };
+
+  img.src = dataUrl;
+};
+
+FC.fallbackDownloadPNG = function(canvas) {
+  const data = canvas.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = data;
+  a.download = 'flowchart.png';
+  a.click();
 };
 
 FC.exportSVG = function() {
@@ -3600,43 +3947,19 @@ FC.exportSVG = function() {
     maxY = Math.max(maxY, s.y + s.h);
   });
   const pad = 40;
+  const rx = minX - pad;
+  const ry = minY - pad;
   const cw = maxX - minX + pad * 2;
   const ch = maxY - minY + pad * 2;
 
-  const savedSel = FC.state.selectedIds;
-  FC.state.selectedIds = [];
-  FC.render();
-
-  const svgClone = FC.svg.cloneNode(true);
-  svgClone.setAttribute('viewBox', `${minX - pad} ${minY - pad} ${cw} ${ch}`);
-  svgClone.setAttribute('width', cw);
-  svgClone.setAttribute('height', ch);
-
-  const gridBg = svgClone.querySelector('#grid-bg');
-  if (gridBg) gridBg.style.display = 'none';
-  svgClone.querySelector('#layer-handles').innerHTML = '';
-  svgClone.querySelector('#layer-guides').innerHTML = '';
-  svgClone.querySelector('#layer-selection').innerHTML = '';
-  svgClone.querySelectorAll('.connection-point').forEach(el => el.remove());
-
-  const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-  bg.setAttribute('x', minX - pad);
-  bg.setAttribute('y', minY - pad);
-  bg.setAttribute('width', cw);
-  bg.setAttribute('height', ch);
-  bg.setAttribute('fill', 'white');
-  svgClone.insertBefore(bg, svgClone.firstChild);
-
+  const svgClone = FC.prepareExportSVG(rx, ry, cw, ch);
   const svgData = new XMLSerializer().serializeToString(svgClone);
-  const blob = new Blob([svgData], { type: 'image/svg+xml' });
+  const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'flowchart.svg';
   a.click();
-  URL.revokeObjectURL(a.href);
-
-  FC.state.selectedIds = savedSel;
-  FC.render();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
 
 // ===== MERMAID IMPORT/EXPORT =====
@@ -3690,86 +4013,48 @@ FC.parseMermaid = function(code) {
 
   // Parse each line
   joinedLines.forEach(line => {
-    // Parse subgraph (skip for now)
-    if (/^subgraph\b/i.test(line) || /^end\b/i.test(line)) return;
-    // Parse style/class (skip)
-    if (/^(?:style|class|classDef)\b/i.test(line)) return;
+    // skip comments, subgraphs, styles
+    if (/^subgraph\b/i.test(line) || /^end\b/i.test(line) || /^(?:style|class|classDef)\b/i.test(line)) return;
 
-    // Find edges: A --> B, A -->|text| B, A -.-> B, A ==> B
-    // Regex to capture: nodeA[label] linkOp nodeB[label]
-    const edgeRegex = /^(.+?)\s*(-->|-.->|==>|---|-.-|===|-->\|[^|]*\||-.->?\|[^|]*\||==>\|[^|]*\|)\s*(.+)$/;
-    const m = line.match(edgeRegex);
-    if (m) {
-      // Could be chained: A --> B --> C
-      let remainder = line;
-      while (true) {
-        const em = remainder.match(/^(.+?)\s*(-->|-.->|==>|---|-.-|===)\s*(?:\|([^|]*)\|\s*)?(.+)$/);
-        if (!em) {
-          // Try link with embedded label: -->|text|
-          const em2 = remainder.match(/^(.+?)\s*(-->|-.->|==>)\|([^|]*)\|\s*(.+)$/);
-          if (em2) {
-            const fromNode = FC.parseMermaidNode(em2[1].trim(), nodeMap);
-            const label = em2[3].trim();
-            const rest = em2[4].trim();
-            const toNode = FC.parseMermaidNode(rest.split(/\s*(?:-->|-.->|==>|---)/)[0].trim(), nodeMap);
-            edges.push({ from: fromNode.id, to: toNode.id, label, style: em2[2].includes('.') ? 'dashed' : 'solid' });
-            // Check for chain
-            const chainIdx = rest.indexOf('-->');
-            const chainIdx2 = rest.indexOf('-.->');
-            const chainIdx3 = rest.indexOf('==>');
-            const ci = [chainIdx, chainIdx2, chainIdx3].filter(i => i >= 0);
-            if (ci.length > 0) {
-              remainder = toNode.raw + rest.substring(Math.min(...ci));
-              continue;
-            }
-          } else {
-            // Single node definition
-            FC.parseMermaidNode(remainder.trim(), nodeMap);
-          }
-          break;
+    // split by link operators
+    const linkPattern = /\s*(-->|-.->|==>|---|-.-|===)(?:\|([^|]+)\|)?\s*/g;
+    
+    let parts = [];
+    let lastIndex = 0;
+    let match;
+    while ((match = linkPattern.exec(line)) !== null) {
+        parts.push({ type: 'node', text: line.substring(lastIndex, match.index).trim() });
+        parts.push({ type: 'link', text: match[1], label: match[2] || '' });
+        lastIndex = linkPattern.lastIndex;
+    }
+    if (lastIndex < line.length) {
+        parts.push({ type: 'node', text: line.substring(lastIndex).trim() });
+    }
+
+    if (parts.length >= 3) {
+        let fromNode = FC.parseMermaidNode(parts[0].text, nodeMap);
+        for (let i = 1; i < parts.length - 1; i += 2) {
+            let link = parts[i];
+            let toNodeText = parts[i+1].text;
+            let toNode = FC.parseMermaidNode(toNodeText, nodeMap);
+            edges.push({
+                from: fromNode.id,
+                to: toNode.id,
+                label: link.label.trim(),
+                style: link.text.includes('.') ? 'dashed' : 'solid'
+            });
+            fromNode = toNode;
         }
-        const fromNode = FC.parseMermaidNode(em[1].trim(), nodeMap);
-        const label = em[3] || '';
-        const linkType = em[2];
-        const restStr = em[4].trim();
-        // Get target node (first token)
-        const nextEdge = restStr.match(/^(.+?)\s*(-->|-.->|==>|---|-.-|===)/);
-        let toRaw;
-        if (nextEdge) {
-          toRaw = nextEdge[1].trim();
-          remainder = restStr;
-        } else {
-          toRaw = restStr;
-          remainder = '';
-        }
-        const toNode = FC.parseMermaidNode(toRaw, nodeMap);
-        edges.push({
-          from: fromNode.id,
-          to: toNode.id,
-          label: label,
-          style: linkType.includes('.') ? 'dashed' : 'solid'
-        });
-        if (!nextEdge) break;
-        remainder = toRaw + restStr.substring(nextEdge.index + nextEdge[1].length);
-        // Prevent re-parse the entire thing
-        if (nextEdge) {
-          remainder = restStr.substring(nextEdge[1].length);
-          remainder = toNode.raw + remainder;
-        }
-        // Safety: if remainder is the same, break
-        if (remainder === line) break;
-      }
-    } else {
-      FC.parseMermaidNode(line.trim(), nodeMap);
+    } else if (parts.length === 1 && parts[0].text) {
+        FC.parseMermaidNode(parts[0].text, nodeMap);
     }
   });
 
   // Auto-layout
   const nodes = Object.values(nodeMap);
   const isHorizontal = direction === 'LR' || direction === 'RL';
-  const spacing = isHorizontal ? { x: 200, y: 100 } : { x: 160, y: 120 };
 
-  // Simple topological layout
+  // 1. Assign layers (Longest Path)
   const levels = {};
   const visited = new Set();
   const roots = nodes.filter(n => !edges.some(e => e.to === n.id));
@@ -3782,58 +4067,146 @@ FC.parseMermaid = function(code) {
     edges.filter(e => e.from === nodeId).forEach(e => assignLevel(e.to, level + 1));
   }
   roots.forEach(n => assignLevel(n.id, 0));
-  // Assign unvisited nodes
   nodes.forEach(n => { if (!visited.has(n.id)) { levels[n.id] = 0; } });
 
-  // Group by level
-  const levelGroups = {};
+  // 2. Determine node sizes dynamically based on text
+  nodes.forEach(node => {
+    const def = FC.SHAPE_DEFS[node.shapeType] || { w: 140, h: 60 };
+    // Estimate width based on characters (about 8px per char on average)
+    const charEst = 8;
+    const pad = 30;
+    const maxW = 280;
+    const rawW = node.label.length * charEst + pad;
+    const w = Math.min(maxW, Math.max(120, rawW));
+    
+    // Estimate height based on wrapped lines
+    const charsPerLine = (w - pad) / charEst;
+    const linesCount = Math.ceil(node.label.length / charsPerLine);
+    const h = Math.max(def.h, linesCount * 22 + 20);
+    
+    node.w = w;
+    node.h = h;
+  });
+
+  // 3. Group by level and sort by barycenter to reduce edge crossings
+  const levelGroups = [];
+  let maxLevel = 0;
   for (const [nid, lv] of Object.entries(levels)) {
     if (!levelGroups[lv]) levelGroups[lv] = [];
     levelGroups[lv].push(nid);
+    maxLevel = Math.max(maxLevel, lv);
+  }
+  
+  const posInLevel = {};
+  if (levelGroups[0]) {
+    levelGroups[0].forEach((nid, i) => posInLevel[nid] = i);
   }
 
-  const theme = FC.THEMES[FC.state.theme];
-  const startX = 100, startY = 100;
-
-  // Create shapes
-  for (const [lv, nids] of Object.entries(levelGroups)) {
-    const lvNum = parseInt(lv);
-    nids.forEach((nid, idx) => {
-      const node = nodeMap[nid];
-      const def = FC.SHAPE_DEFS[node.shapeType] || { w: 140, h: 60 };
-      let sx, sy;
-      if (isHorizontal) {
-        sx = startX + lvNum * spacing.x;
-        sy = startY + idx * spacing.y;
-        if (direction === 'RL') sx = startX + (Object.keys(levelGroups).length - 1 - lvNum) * spacing.x;
+  for (let lv = 1; lv <= maxLevel; lv++) {
+    if (!levelGroups[lv]) continue;
+    const barycenters = {};
+    levelGroups[lv].forEach(nid => {
+      const parents = edges.filter(e => e.to === nid && levels[e.from] === lv - 1).map(e => e.from);
+      if (parents.length > 0) {
+        let sum = 0;
+        parents.forEach(p => sum += posInLevel[p]);
+        barycenters[nid] = sum / parents.length;
       } else {
-        sx = startX + idx * spacing.x;
-        sy = startY + lvNum * spacing.y;
-        if (direction === 'BT') sy = startY + (Object.keys(levelGroups).length - 1 - lvNum) * spacing.y;
+        barycenters[nid] = 9999;
       }
-
-      const shape = {
-        id: 'shape_' + FC.state.nextId++,
-        type: node.shapeType,
-        x: sx, y: sy,
-        w: def.w, h: def.h,
-        text: node.label,
-        fill: theme.fill,
-        stroke: theme.stroke,
-        strokeWidth: 2,
-        strokeStyle: 'solid',
-        cornerRadius: 0,
-        textColor: theme.text,
-        fontSize: 13,
-        fontBold: false,
-        fontItalic: false,
-        textAlign: 'center',
-        shadow: false,
-        opacity: 1,
-      };
-      FC.state.shapes.push(shape);
-      node.shapeId = shape.id;
     });
+    levelGroups[lv].sort((a, b) => barycenters[a] - barycenters[b]);
+    levelGroups[lv].forEach((nid, i) => posInLevel[nid] = i);
+  }
+
+  // 4. Calculate actual X, Y coordinates and create shapes
+  const theme = FC.THEMES[FC.state.theme];
+  const gapX = 60, gapY = 80;
+
+  // Compute bounding dimensions of each level
+  const levelDims = [];
+  let maxTotalDim = 0;
+
+  for (let lv = 0; lv <= maxLevel; lv++) {
+    if (!levelGroups[lv]) {
+      levelDims.push({ w: 0, h: 0, totalW: 0, totalH: 0 });
+      continue;
+    }
+    let totalW = 0, totalH = 0;
+    let maxW = 0, maxH = 0;
+    levelGroups[lv].forEach(nid => {
+      const node = nodeMap[nid];
+      totalW += node.w + gapX;
+      totalH += node.h + gapY;
+      maxW = Math.max(maxW, node.w);
+      maxH = Math.max(maxH, node.h);
+    });
+    totalW -= gapX; // remove trailing gap
+    totalH -= gapY;
+    levelDims.push({ w: maxW, h: maxH, totalW, totalH });
+    maxTotalDim = Math.max(maxTotalDim, isHorizontal ? totalH : totalW);
+  }
+
+  let currentY = 100;
+  let currentX = 100;
+
+  for (let lv = 0; lv <= maxLevel; lv++) {
+    if (!levelGroups[lv]) continue;
+    const dim = levelDims[lv];
+    
+    if (isHorizontal) {
+      let sy = 100 + (maxTotalDim - dim.totalH) / 2; // Center vertically in level
+      let sx = currentX;
+      levelGroups[lv].forEach(nid => {
+        const node = nodeMap[nid];
+        let shapeX = sx;
+        let shapeY = sy;
+        
+        if (direction === 'RL') shapeX = 100 + maxLevel * (250 + gapX) - (currentX - 100);
+        
+        FC.state.shapes.push(createShape(node, shapeX, shapeY, theme));
+        sy += node.h + gapY;
+      });
+      currentX += dim.w + gapX;
+    } else {
+      let sx = 100 + (maxTotalDim - dim.totalW) / 2; // Center horizontally in level
+      let sy = currentY;
+      levelGroups[lv].forEach(nid => {
+        const node = nodeMap[nid];
+        let shapeX = sx;
+        let shapeY = sy;
+
+        if (direction === 'BT') shapeY = 100 + maxLevel * (150 + gapY) - (currentY - 100);
+        
+        FC.state.shapes.push(createShape(node, shapeX, shapeY, theme));
+        sx += node.w + gapX;
+      });
+      currentY += dim.h + gapY;
+    }
+  }
+
+  function createShape(node, x, y, theme) {
+    const shape = {
+      id: 'shape_' + FC.state.nextId++,
+      type: node.shapeType,
+      x: Math.round(x), y: Math.round(y),
+      w: node.w, h: node.h,
+      text: node.label,
+      fill: theme.fill,
+      stroke: theme.stroke,
+      strokeWidth: 2,
+      strokeStyle: 'solid',
+      cornerRadius: 0,
+      textColor: theme.text,
+      fontSize: 13,
+      fontBold: false,
+      fontItalic: false,
+      textAlign: 'center',
+      shadow: false,
+      opacity: 1,
+    };
+    node.shapeId = shape.id;
+    return shape;
   }
 
   // Create connectors
